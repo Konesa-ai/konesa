@@ -454,3 +454,48 @@ button{ font-family:inherit; cursor:pointer; }
   padding:10px 16px; font-size:14px; z-index:70;
   max-width:88vw; text-align:center;
 }
+
+/* ===== Kont itilizatè (v9) ===== */
+#account-block{
+  padding:12px 14px 4px;
+  display:flex; flex-direction:column; gap:8px;
+}
+.account-chip{
+  display:flex; align-items:center; gap:10px; width:100%;
+  background:var(--panel-2); color:var(--text);
+  border:1px solid var(--border); border-radius:12px;
+  padding:9px 12px; font-size:15px; text-align:left;
+}
+.account-avatar{
+  width:36px; height:36px; flex:0 0 auto; border-radius:50%;
+  background:var(--accent); color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:16px;
+}
+.account-chip-email{
+  flex:1; min-width:0; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap;
+}
+.account-logout-small{ width:auto; padding:9px 12px; font-size:14px; }
+.auth-providers{ display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+.auth-provider{ margin:0; }
+.auth-sep{ text-align:center; color:var(--muted); margin:14px 0 2px; font-size:14px; }
+.auth-alt{
+  width:100%; padding:12px; border-radius:12px;
+  background:transparent; color:var(--accent);
+  border:1px solid var(--accent); font-size:15.5px;
+}
+.auth-msg{ min-height:20px; font-size:14.5px; color:var(--green); margin:4px 0 0; }
+.auth-msg.error{ color:var(--danger); }
+.account-card{
+  display:flex; align-items:center; gap:12px;
+  background:var(--panel-2); border:1px solid var(--border);
+  border-radius:14px; padding:14px; margin:14px 0;
+}
+.account-card .account-avatar{ width:46px; height:46px; font-size:20px; }
+.account-profile-lines{ min-width:0; }
+.account-profile-email{
+  margin:0; font-weight:600; word-break:break-all;
+}
+.account-profile-lines .ws-sub{ margin:2px 0 0; }
+.auth-logout{ background:var(--danger); border-color:var(--danger); }

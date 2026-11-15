@@ -59,6 +59,34 @@
       <p id="library-empty" class="soon">Bibliyotèk ou a vid.</p>
       <ul id="library-list" class="ws-list"></ul>
     </section>
+    <section id="view-kont" class="view panel-view ws-view">
+      <h2>Kont Babata mwen</h2>
+      <div id="account-signed-out">
+        <p class="ws-sub">Yon kont pèmèt ou kenbe menm limit ou a sou tout aparèy ou yo, epi l ap aktive Pake Konplè a lè l pare. Koneksyon an opsyonèl — Babata kontinye mache nèt san kont tou.</p>
+        <div class="auth-providers">
+          <button id="auth-google-btn" class="ws-add auth-provider" type="button">Continye ak Google</button>
+          <button id="auth-facebook-btn" class="ws-add auth-provider" type="button">Continye ak Facebook</button>
+        </div>
+        <p class="auth-sep">— oswa —</p>
+        <div class="ws-form">
+          <input id="auth-email" type="email" placeholder="Adrès imèl ou" autocomplete="email">
+          <input id="auth-password" type="password" placeholder="Modpas ou" autocomplete="current-password">
+          <button id="auth-login-btn" class="ws-add" type="button">Konekte</button>
+          <button id="auth-signup-btn" class="auth-alt" type="button">Kreye yon kont</button>
+        </div>
+        <p id="auth-msg" class="auth-msg"></p>
+      </div>
+      <div id="account-signed-in" class="hidden">
+        <div class="account-card">
+          <div id="account-profile-avatar" class="account-avatar">?</div>
+          <div class="account-profile-lines">
+            <p id="account-profile-email" class="account-profile-email"></p>
+            <p id="account-profile-provider" class="ws-sub"></p>
+          </div>
+        </div>
+        <button id="auth-logout-btn" class="ws-add auth-logout" type="button">Dekonekte</button>
+      </div>
+    </section>
   </main>
 
   <!-- ===== CHIP ATACHMAN (fichye chwazi a, pare pou voye) ===== -->
@@ -116,6 +144,8 @@
     </div>
     <button id="drawer-close" class="round-btn small" type="button" aria-label="Fèmen meni an">✕</button>
   </div>
+
+  <div id="account-block"></div>
 
   <nav class="drawer-nav">
     <button class="drawer-item active" type="button" data-view="chat">💬 Diskisyon prensipal</button>

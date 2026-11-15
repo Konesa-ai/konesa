@@ -280,6 +280,7 @@ function setView(name){
   if (name === "ide") renderIdeas();
   if (name === "objektif") renderGoals();
   if (name === "bibliyotek") renderLibrary();
+  if (name === "kont") renderAccount();
 }
 
 /* ---------- Drawer ---------- */
@@ -1170,12 +1171,7 @@ async function runImageRequest(userText){
   try {
     const res = await fetch(CHAT_API.url, {
       method: "POST",
-      headers: {
-        "Authorization": "Bearer " + CHAT_API.anonKey,
-        "apikey": CHAT_API.anonKey,
-        "x-babata-token": CHAT_API.token,
-        "Content-Type": "application/json"
-      },
+      headers: chatApiHeaders(),
       body: JSON.stringify({ mode: "imaj", prompt: userText }),
       signal: run.controller.signal
     });
@@ -1372,12 +1368,7 @@ async function runRequest(body, opts){
   try {
     const res = await fetch(CHAT_API.url, {
       method: "POST",
-      headers: {
-        "Authorization": "Bearer " + CHAT_API.anonKey,
-        "apikey": CHAT_API.anonKey,
-        "x-babata-token": CHAT_API.token,
-        "Content-Type": "application/json"
-      },
+      headers: chatApiHeaders(),
       body: JSON.stringify(body),
       signal: run.controller.signal
     });
@@ -1826,11 +1817,385 @@ el("wipe-btn").addEventListener("click", () => {
   toast("Istwa a efase.");
 });
 
+/* ================================================================
+   KONT ITILIZATÈ (v9) — Supabase Auth an REST dirèk, san bibliyotèk.
+   Koneksyon an OPSYONÈL : san sesyon, app la konpòte l egzakteman
+   tankou v8 la (mòd envite). Baz Auth la derive depi URL fonksyon
+   an : menm orijin Supabase la, chemen /auth/v1 olye /functions/v1.
+   Kle anon an se menm valè ki deja sèvi kòm Bearer nan CHAT_API a.
+   Sesyon an sove nan localStorage (kle « babata_pwa_session_v1 ») :
+   { access_token, refresh_token, expires_at, user:{ id, email,
+   name, provider } }. Lè yon sesyon aktif, apèl fonksyon yo ajoute
+   header « x-babata-user » a (gade chatApiHeaders) — sa prepare
+   limit pa kont bò sèvè a san anyen pa kase.
+   ================================================================ */
+const SESSION_KEY = "babata_pwa_session_v1";
+const AUTH_BASE = CHAT_API.url.split("/functions/v1/")[0] + "/auth/v1";
+const AUTH_REDIRECT_TO = "https://babata-ai.github.io/babata/";
+const AUTH_WELCOME_TEXT = "Ou konekte ak kont ou a ✔";
+
+/* Header apèl fonksyon yo : egzakteman menm header ak v8 la, plis
+   « x-babata-user » SÈLMAN lè yon sesyon kont aktif. */
+function chatApiHeaders(){
+  const h = {
+    "Authorization": "Bearer " + CHAT_API.anonKey,
+    "apikey": CHAT_API.anonKey,
+    "x-babata-token": CHAT_API.token,
+    "Content-Type": "application/json"
+  };
+  const s = loadSession();
+  if (s && s.access_token) h["x-babata-user"] = s.access_token;
+  return h;
+}
+function authApiHeaders(extra){
+  const h = { "apikey": CHAT_API.anonKey, "Content-Type": "application/json" };
+  if (extra) Object.keys(extra).forEach(k => { h[k] = extra[k]; });
+  return h;
+}
+
+/* ---------- Sesyon : sove / chaje / efase ---------- */
+function saveSession(s){
+  try {
+    if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    else localStorage.removeItem(SESSION_KEY);
+  } catch(e){}
+  renderAccountBlock();
+  if (currentView === "kont") renderAccount();
+}
+function loadSession(){
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s || typeof s.access_token !== "string" || !s.access_token) return null;
+    if (!s.user || typeof s.user !== "object") s.user = {};
+    return s;
+  } catch(e){ return null; }
+}
+function clearSession(){
+  try { localStorage.removeItem(SESSION_KEY); } catch(e){}
+  renderAccountBlock();
+  if (currentView === "kont") renderAccount();
+}
+function sessionUser(){
+  const s = loadSession();
+  return (s && s.user) ? s.user : null;
+}
+/* Konstwi objè sesyon an apati yon repons token Supabase (koneksyon,
+   enskripsyon ak sesyon, oswa refresh). */
+function sessionFromAuthData(data, providerHint){
+  if (!data || typeof data.access_token !== "string" || !data.access_token) return null;
+  const u = (data.user && typeof data.user === "object") ? data.user : {};
+  const meta = (u.user_metadata && typeof u.user_metadata === "object") ? u.user_metadata : {};
+  const appMeta = (u.app_metadata && typeof u.app_metadata === "object") ? u.app_metadata : {};
+  const expiresIn = (typeof data.expires_in === "number" && data.expires_in > 0) ? data.expires_in : 3600;
+  return {
+    access_token: data.access_token,
+    refresh_token: (typeof data.refresh_token === "string") ? data.refresh_token : "",
+    expires_at: Date.now() + expiresIn * 1000,
+    user: {
+      id: (typeof u.id === "string") ? u.id : "",
+      email: (typeof u.email === "string") ? u.email : "",
+      name: (typeof meta.full_name === "string" && meta.full_name) || (typeof meta.name === "string" ? meta.name : ""),
+      provider: (typeof appMeta.provider === "string" && appMeta.provider) || providerHint || ""
+    }
+  };
+}
+/* Renouvle sesyon an ak refresh_token an (POST /auth/v1/token?
+   grant_type=refresh_token). Retounen vre si l reyisi. */
+async function refreshSession(){
+  const s = loadSession();
+  if (!s || !s.refresh_token) return false;
+  try {
+    const res = await fetch(AUTH_BASE + "/token?grant_type=refresh_token", {
+      method: "POST",
+      headers: authApiHeaders(),
+      body: JSON.stringify({ refresh_token: s.refresh_token })
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    const ns = sessionFromAuthData(data, s.user ? s.user.provider : "");
+    if (!ns) return false;
+    saveSession(ns);
+    return true;
+  } catch(e){ return false; }
+}
+/* Rekipere pwofil itilizatè a depi sèvè a ak access_token an. */
+async function fetchAuthUser(accessToken){
+  try {
+    const res = await fetch(AUTH_BASE + "/user", {
+      headers: { "apikey": CHAT_API.anonKey, "Authorization": "Bearer " + accessToken }
+    });
+    if (!res.ok) return null;
+    const u = await res.json();
+    return (u && typeof u === "object") ? u : null;
+  } catch(e){ return null; }
+}
+/* Sekou si /user pa reponn : li id + imèl la nan kò JWT a menm
+   (pou afichaj sèlman — sèvè a toujou verifye siyati a). */
+function sessionClaimsFromToken(accessToken){
+  const out = { id: "", email: "" };
+  try {
+    const parts = String(accessToken || "").split(".");
+    if (parts.length !== 3) return out;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if (payload && typeof payload === "object") {
+      if (typeof payload.sub === "string") out.id = payload.sub;
+      if (typeof payload.email === "string") out.email = payload.email;
+    }
+  } catch(e){}
+  return out;
+}
+
+/* ---------- Tradiksyon erè Auth yo an kreyòl ---------- */
+function authErrorMessage(err){
+  const raw = [
+    err && err.msg, err && err.message, err && err.error_description,
+    err && err.error, err && err.error_code, err && err.code
+  ].filter(Boolean).join(" ").toLowerCase();
+  if (/provider is not enabled|unsupported provider|provider.*disabled/.test(raw))
+    return "Metòd koneksyon sa a poko pare. Eseye Google oswa imèl.";
+  if (/access_denied/.test(raw))
+    return "Koneksyon an anile. Ou ka reeseye lè w pare.";
+  if (/invalid login credentials/.test(raw))
+    return "Imèl oswa modpas la pa kòrèk. Verifye epi reeseye.";
+  if (/user already registered|already been registered|already exists/.test(raw))
+    return "Kont la egziste deja ak imèl sa a. Konekte ou olye w kreye yon lòt.";
+  if (/password should be at least|password.*too short|weak password/.test(raw))
+    return "Modpas la twò kout — mete omwen 6 karaktè.";
+  if (/unable to validate email|invalid email|email address.*invalid/.test(raw))
+    return "Adrès imèl la pa valid. Verifye l epi reeseye.";
+  if (/email not confirmed/.test(raw))
+    return "Ou poko konfime imèl ou a. Klike lyen konfimasyon an nan bwat imèl ou a, apre retounen konekte.";
+  if (/rate limit|too many requests|over_email_send|over_request/.test(raw))
+    return "Twòp tantativ. Tann yon ti moman epi reeseye.";
+  if (/failed to fetch|network|load failed/.test(raw))
+    return "Koneksyon an koupe. Verifye entènèt ou epi reeseye.";
+  return "Yon erè rive pandan koneksyon an. Reeseye.";
+}
+function setAuthMsg(text, isError){
+  const m = el("auth-msg");
+  if (!m) return;
+  m.textContent = text || "";
+  m.classList.toggle("error", !!isError);
+}
+
+/* ---------- Retou OAuth (fragman #access_token oswa erè) ---------- */
+function cleanAuthUrl(){
+  try { history.replaceState(null, document.title, location.pathname); } catch(e){}
+}
+async function handleOAuthReturn(){
+  let hashParams = null, queryParams = null;
+  try { if (location.hash && location.hash.length > 1) hashParams = new URLSearchParams(location.hash.slice(1)); } catch(e){}
+  try { if (location.search && location.search.length > 1) queryParams = new URLSearchParams(location.search.slice(1)); } catch(e){}
+  const getP = k => (hashParams && hashParams.get(k)) || (queryParams && queryParams.get(k)) || null;
+  const errCode = getP("error_code") || getP("error");
+  const errDesc = getP("error_description");
+  if (errCode || errDesc) {
+    cleanAuthUrl();
+    localBotMessage(authErrorMessage({ error: errCode, error_description: errDesc }));
+    return true;
+  }
+  const accessToken = hashParams ? hashParams.get("access_token") : null;
+  if (accessToken) {
+    const refreshToken = hashParams.get("refresh_token") || "";
+    const expiresIn = parseInt(hashParams.get("expires_in") || "3600", 10) || 3600;
+    let session = null;
+    const userObj = await fetchAuthUser(accessToken);
+    if (userObj) {
+      session = sessionFromAuthData(
+        { access_token: accessToken, refresh_token: refreshToken, expires_in: expiresIn, user: userObj }, "");
+    }
+    if (!session) {
+      const claims = sessionClaimsFromToken(accessToken);
+      session = {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_at: Date.now() + expiresIn * 1000,
+        user: { id: claims.id, email: claims.email, name: "", provider: "" }
+      };
+    }
+    cleanAuthUrl();
+    saveSession(session);
+    localBotMessage(AUTH_WELCOME_TEXT);
+    return true;
+  }
+  if (queryParams && queryParams.get("code")) {
+    /* Retou PKCE san code_verifier (nou lanse koule implicite la) :
+       sesyon an pa ka fin konstwi isit la — mesaj onèt, URL netwaye. */
+    cleanAuthUrl();
+    localBotMessage("Koneksyon an pa t fin konplete. Reeseye konekte a.");
+    return true;
+  }
+  return false;
+}
+
+/* ---------- Aksyon koneksyon yo ---------- */
+function signInWithProvider(provider){
+  window.location.href = AUTH_BASE + "/authorize?provider=" + encodeURIComponent(provider) +
+    "&redirect_to=" + encodeURIComponent(AUTH_REDIRECT_TO);
+}
+function readAuthForm(){
+  return {
+    email: (el("auth-email").value || "").trim(),
+    password: el("auth-password").value || ""
+  };
+}
+async function signInWithEmail(){
+  const f = readAuthForm();
+  if (!f.email || !f.password) { setAuthMsg("Mete imèl ou ak modpas ou anvan w konekte.", true); return; }
+  setAuthMsg("Koneksyon ap fèt…", false);
+  try {
+    const res = await fetch(AUTH_BASE + "/token?grant_type=password", {
+      method: "POST",
+      headers: authApiHeaders(),
+      body: JSON.stringify({ email: f.email, password: f.password })
+    });
+    let data = null;
+    try { data = await res.json(); } catch(e){}
+    if (!res.ok) { setAuthMsg(authErrorMessage(data), true); return; }
+    const s = sessionFromAuthData(data, "email");
+    if (!s) { setAuthMsg("Yon erè rive pandan koneksyon an. Reeseye.", true); return; }
+    saveSession(s);
+    el("auth-password").value = "";
+    setView("chat");
+    localBotMessage(AUTH_WELCOME_TEXT);
+  } catch(e){ setAuthMsg(authErrorMessage(e), true); }
+}
+async function signUpWithEmail(){
+  const f = readAuthForm();
+  if (!f.email || !f.password) { setAuthMsg("Mete yon imèl ak yon modpas pou w kreye kont la.", true); return; }
+  setAuthMsg("Kont la ap kreye…", false);
+  try {
+    const res = await fetch(AUTH_BASE + "/signup", {
+      method: "POST",
+      headers: authApiHeaders(),
+      body: JSON.stringify({ email: f.email, password: f.password })
+    });
+    let data = null;
+    try { data = await res.json(); } catch(e){}
+    if (!res.ok) { setAuthMsg(authErrorMessage(data), true); return; }
+    const s = sessionFromAuthData(data, "email");
+    if (s) {
+      saveSession(s);
+      el("auth-password").value = "";
+      setView("chat");
+      localBotMessage(AUTH_WELCOME_TEXT);
+      return;
+    }
+    if (data && (data.user || data.id)) {
+      /* Kont la kreye men konfimasyon imèl la aktive : pa gen sesyon
+         toutotan itilizatè a pa klike lyen ki nan imèl li a. */
+      setAuthMsg("Kont la kreye ✔ Klike lyen konfimasyon an nan imèl ou a, apre retounen konekte.", false);
+      return;
+    }
+    setAuthMsg("Yon erè rive pandan kreyasyon kont la. Reeseye.", true);
+  } catch(e){ setAuthMsg(authErrorMessage(e), true); }
+}
+async function signOut(){
+  const s = loadSession();
+  if (s && s.access_token) {
+    try {
+      await fetch(AUTH_BASE + "/logout", {
+        method: "POST",
+        headers: authApiHeaders({ "Authorization": "Bearer " + s.access_token })
+      });
+    } catch(e){ /* Pi bon efò : dekoneksyon lokal la kontinye kanmenm. */ }
+  }
+  clearSession();
+  setAuthMsg("", false);
+  toast("Ou dekonekte.");
+}
+
+/* ---------- Afichaj kont la (tiwa + View Kont) ---------- */
+function providerLabel(p){
+  if (p === "google") return "Koneksyon : Google";
+  if (p === "facebook") return "Koneksyon : Facebook";
+  if (p === "email") return "Koneksyon : Imèl ak modpas";
+  return "";
+}
+function accountInitial(user){
+  const src = (user && (user.name || user.email)) || "?";
+  const ch = String(src).trim().charAt(0);
+  return ch ? ch.toUpperCase() : "?";
+}
+function renderAccountBlock(){
+  const block = el("account-block");
+  if (!block) return;
+  block.innerHTML = "";
+  const user = sessionUser();
+  if (!user) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "drawer-action primary";
+    btn.textContent = "👤 Konekte / Kreye yon kont";
+    btn.addEventListener("click", () => { setView("kont"); closeDrawer(); });
+    block.appendChild(btn);
+    return;
+  }
+  const chip = document.createElement("button");
+  chip.type = "button";
+  chip.className = "account-chip";
+  const av = document.createElement("span");
+  av.className = "account-avatar";
+  av.textContent = accountInitial(user);
+  const em = document.createElement("span");
+  em.className = "account-chip-email";
+  em.textContent = user.email || user.name || "Kont mwen";
+  chip.appendChild(av);
+  chip.appendChild(em);
+  chip.addEventListener("click", () => { setView("kont"); closeDrawer(); });
+  block.appendChild(chip);
+  const out = document.createElement("button");
+  out.type = "button";
+  out.className = "drawer-action account-logout-small";
+  out.textContent = "Dekonekte";
+  out.addEventListener("click", () => { signOut(); closeDrawer(); });
+  block.appendChild(out);
+}
+function renderAccount(){
+  const out = el("account-signed-out"), inn = el("account-signed-in");
+  if (!out || !inn) return;
+  const user = sessionUser();
+  out.classList.toggle("hidden", !!user);
+  inn.classList.toggle("hidden", !user);
+  if (user) {
+    el("account-profile-avatar").textContent = accountInitial(user);
+    el("account-profile-email").textContent = user.email || user.name || "Kont mwen";
+    el("account-profile-provider").textContent = providerLabel(user.provider);
+  }
+}
+el("auth-google-btn").addEventListener("click", () => signInWithProvider("google"));
+el("auth-facebook-btn").addEventListener("click", () => signInWithProvider("facebook"));
+el("auth-login-btn").addEventListener("click", signInWithEmail);
+el("auth-signup-btn").addEventListener("click", signUpWithEmail);
+el("auth-logout-btn").addEventListener("click", signOut);
+el("auth-password").addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); signInWithEmail(); }
+});
+
+/* Demaraj kont la : trete retou OAuth la anvan, apre — si sesyon an
+   prèt pou ekspire (< 120 s) — eseye refresh an silans ; si refresh
+   la echwe, efase sesyon an epi app la kontinye an mòd envite. */
+async function initAuth(){
+  renderAccountBlock();
+  const handled = await handleOAuthReturn();
+  if (!handled) {
+    const s = loadSession();
+    if (s && typeof s.expires_at === "number" && (s.expires_at - Date.now()) < 120000) {
+      const ok = await refreshSession();
+      if (!ok) clearSession();
+    }
+  }
+  renderAccountBlock();
+}
+
 /* ---------- Demaraj ---------- */
 loadChats();
 renderMessages();
 renderChatLists();
 setView("chat");
+initAuth();
 /* Smart Memory : restore bouyon diskisyon aktif la apre reload. */
 const startChat = currentChat();
 if (startChat) input.value = startChat.draft || "";
