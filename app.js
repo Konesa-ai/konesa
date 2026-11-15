@@ -89,6 +89,9 @@ function centralUsageToday(){
   return { day: today, count: 0 };
 }
 function centralRecordUse(){
+  /* V13 : lè yon kont KONEKTE, se plan sèvè a ki konte (fonksyon v13) —
+     kontè lokal la rete pou envite yo sèlman. */
+  if (loadSession()) return;
   const u = centralUsageToday();
   u.count += 1;
   centralUsageMem = { day: u.day, count: u.count };
@@ -99,6 +102,11 @@ function centralLimitMessage(){
   return "Limit analiz santral ou a pou jodi a rive (" + lim + " sou " + lim + ") — kle pataje Babata a bezwen pwoteksyon sa a pou l rete disponib pou tout moun. Li reouvri demen, a minwi. Konvèsasyon lokal yo ak diskisyon ou yo rete louvri nèt, san limit. Si w pran Pake Konplè a, limit la monte a 40 analiz pa jou.";
 }
 function centralLimitReached(){
+  /* V13 — KOREKSYON : limit lokal la (5/jou sou aparèy la) te bloke menm
+     kont ki gen plan peye yo, paske l te deside anvan sèvè a pale. Kounye a :
+     si yon kont konekte, se plan sèvè a ki gouvène (gratis 5, debaz 30,
+     pro 150, promax san limit) ; limit lokal la sèvi pou envite yo sèlman. */
+  if (loadSession()) return false;
   return centralUsageToday().count >= centralDailyLimit();
 }
 
