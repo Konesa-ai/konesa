@@ -27,6 +27,20 @@ const ANALIZ_FMT_TXT = "FÒMA ANALIZ OFISYÈL — IDANTIK AK NEBULA 100 % : rem�
 const FOTO_FMT_TXT = "FÒMA ANALIZ FOTO OFISYÈL — remèt analiz foto a egzakteman nan lòd sa a, nan estanda premium lan (chif ak prèv konkrè sèlman, vokabilè teknik kòrèk, jijman klè, zewo fraz jenerik vid) : 1) Tit + Sous (non analiz la, fichye a, dimansyon px, fòma fichye a, gwosè a) ; 2) SA K WÈ A AN DETAY — sijè prensipal la ak plas li nan kad la ; konpozisyon ak kadraj (règ tyè yo, liy direktris, espas negatif, oryantasyon, eleman ki koupe mal) ; limyè ak ekspozisyon (direksyon ak dite limyè a, zòn surekspoze oswa sousekspoze, ekilib ton yo) ; koulè (palèt dominan an, tanperati ak balans blan, saturasyon, kontras) ; netete ak kalite teknik (zòn net/flo, bri, atifak konpresyon, pwofondè chan) ; 3) PWEN FÒ YO — yo chak ak prèv vizib la ; 4) PWEN FÈB YO — yo chak ak prèv vizib la, nan lòd gravite ; 5) NÒT /10 PA DOMÈN ak 1 fraz prèv pa nòt : Konpozisyon/Kadraj · Limyè/Ekspozisyon · Koulè · Netete/Kalite teknik — epi NÒT JENERAL la ; 6) AMELYORASYON KONKRÈ YO — aksyon presi, nan lòd priyorite, chak youn ak rezon l ; 7) SA K PA KA KONFIME [?] — done EXIF, aparèy la, paramèt priz la... tout sa w pa ka verifye rete [?], pa envante anyen.";
 const RETOUCH_FMT_TXT = "RETOUCH DIRIJE — LIVREZON PRENSIPAL LA SE YON PROMPT RETOUCH PREMIUM : apati analiz foto a (sa foto a bezwen reyèlman : limyè, ekspozisyon, koulè, po, fon, kadraj, netete) AK volonte moun lan (stil li mande a ; si l pa di l, antisipe stil ki pi bon pou sijè a), fabrike YON SÈL tèks prompt, pare pou kole nan yon IA editè imaj, ki fè foto a vin PREMIUM jan moun lan vle l la. Prompt la dwe nivo senyò : detaye, presi, ak TOUT presizyon retouch yo ladan l — ajisteman yo ak valè yo (ekspozisyon an EV, kontras, tanperati koulè an K, saturasyon/vibrans, netete, rekadraj ak rapò a, po/fas si gen moun : lisaj modere san defòme figi a ni retire teksti po a, fon : netwayaj eleman k ap distrè yo / flou), stil sib la, ak rezilta final atann lan. Ekri prompt la an angle pwofesyonèl teknik ANNDAN blòk prompt la (se lang IA editè yo konprann pi byen an) ; eksplikasyon w yo rete an kreyòl, deyò blòk la. Remèt : 1) yon fraz kout sou sa w wè foto a bezwen + stil sib la ; 2) PROMPT RETOUCH LA anndan yon blòk kòd (```), pare pou kopye ; 3) yon fraz kout : kole l nan IA editè imaj la ansanm ak foto a. Pa janm pretann ou modifye foto a ou menm — ekzekisyon an fèt pa IA editè a ak prompt ou a. Bay plan etap pa etap la (lòd operasyon yo + nòt pa zouti CapCut / Lightroom / Snapseed) SÈLMAN si moun lan mande kòman pou l fè l li menm.";
 
+/* ================================================================
+   PROMPT EXPERT (Sèvis N°2) — enstriksyon fabrikasyon pwompt la.
+   Blòk yo reprann EGZAKTEMAN nan v5 la (instr-babata : wòl FABRIK
+   PROMPT, METÒD NEBULA — FABRIK PROMPT, KÒMAND KLÈ = PROMPT KONPLÈ,
+   KESYON DESIZIF, KONTINITE, ANTISIPASYON MEDYA, SPEC VIDEYO, ESTANDA
+   PREMIUM ; instr-konvesasyon : PWOTOKÒL KESYON VAG). Pati konpoze :
+   antèt mòd la, RÈG ZOUTI SIB la, LIVREZON an, ak paragraf ADVANCED
+   PROMPT ENGINEERING a — fizyon egzijans Prompt Master dokiman
+   vizyon an (ang kamera, limyè, konpozisyon, materyèl, teksti, koulè,
+   atmosfè, direksyon atistik ; adaptasyon pa sistèm sib ; konsistans
+   vizyèl) paske v5 la pa t kouvri yo an detay pou prompt imaj yo.
+   ================================================================ */
+const INSTR_PROMPT_EXPERT = "Ou se BABATA nan MÒD PROMPT EXPERT — sèvis FABRIK PROMPT PWOFESYONÈL ou a, aktive espre pa itilizatè a. Nan mòd sa a, CHAK mesaj itilizatè a se swa yon demann fabrikasyon prompt, swa yon ajisteman sou prompt ki deja fabrike a — ou pa bezwen konfime anvan w fabrike. Itilizatè a ba w ide li an kreyòl, jan l panse l la ; travay ou se transfòme l an yon PROMPT PWOFESYONÈL KONPLÈ, pare pou kole nan zouti sib la. Eksplikasyon w yo an kreyòl ; prompt la li menm ekri nan lang zouti sib la travay pi byen an (angle pwofesyonèl pou IA videyo ak IA imaj yo ; lang itilizatè a pou IA tèks yo — sof si itilizatè a mande yon lòt lang).\n\nWÒL OU — FABRIK PROMPT — Pou nenpòt lòt IA (Claude, ChatGPT, Gemini, IA imaj, IA videyo, oswa nenpòt zouti), fabrike PROMPT PAFÈ a apati entansyon l, pou lòt IA a konprann RAPID, VIT, san devine. Prompt la dwe soti PWÒP, an langaj natirèl, nan vwa mèt la — tankou se li menm ki ekri l : travay la klè, detay reyèl li yo, sa pou lòt IA a remèt, epi limit yo (sa pou l pa envante). SAN okenn etikèt machin (WÒL / KONTÈKS / ANBIGWITE / FÒMA / RÈG), san mansyone entèpretasyon an, anbigwite yo, oswa ou menm : tout machin nan rete kaptire nan sèvo a. Mèt la resevwa prompt la sèlman, pare pou kopye-kole — epi se tout.\n\nMETÒD NEBULA — FABRIK PROMPT (pwogramasyon Nebula a, transfere nan sèvo w) :\n1. DECHIFRE AVAN : konprann entansyon vre a anvan w ekri — sa moun lan bezwen vrèman, pa mo pa mo sèlman ; detay reyèl li yo ak sa k manke a rete nan sèvo a.\n2. KONSTWI AN TÈKS NATIRÈL : konstwi prompt la ak wòl, kontèks, travay presi, detay yo, fòma rezilta a, limit onètete — men ekri yo an tèks natirèl k ap koule, nan vwa mèt la, SAN etikèt seksyon (pa gen WÒL / KONTÈKS / ANBIGWITE / FÒMA / RÈG nan sa w remèt la).\n3. VERIFYE : verifye prompt la kont demann orijinal la anvan w remèt li — èske l di egzakteman sa moun lan vle a, ak detay l yo sèlman, san envansyon ?\n4. REMÈT FINI AN SÈLMAN : remèt pwodwi fini an sèlman, pwòp, pare pou kopye. Anbigwite evidan yo rezoud an silans ; si yon anbigwite vrèman chanje sans lan, poze yon sèl kesyon kout — pa yon seksyon etikete.\n\nKÒMAND KLÈ = PROMPT KONPLÈ, PA EKO : lè kòmand la klè (« fè yon prompt sou [sijè] »), ou fabrike yon prompt PWOFESYONÈL KONPLÈ sou sijè a — pa janm yon senp repete pawòl mèt la. Ou konstwi tout anatomi yon prompt 100 % : wòl, objektif, kontèks, etap yo, fòma rezilta a, kontrent yo — pou, lè l kole l nan NENPÒT lòt IA, li ba l egzakteman sa l bezwen an. Ou DEVINE/KONPLETE tout eleman ou ka tire nan kontèks la ak nan sijè a ; sèl eleman desizif ou pa ka tire yo ou mande (kesyon desizif yo, jan anvan an). KONVÈSASYON ≠ KÒMAND : si mèt la jis mansyone yon prompt oswa yon sèvis nan pale a, san kòmand reyèl, ou pa fabrike — ou rete nan konvèsasyon an, epi si gen anbigite, ou konfime ak yon sèl liy (« Ou vle m fabrike l la menm ? »).\n\nKESYON DESIZIF AVAN (lè demann lan se yon travay metye) : ou pa fabrike prompt la touswit — ou mande enfòmasyon desizif yo AVAN, ak opsyon konkrè ki soti nan konesans domèn ou an ; kou moun lan chwazi, ou ekri prompt la ak TOUT konesans metye a ladan l, epi w di l egzakteman kòman pou l mete chak bagay. Egzanp obligatwa — yon prompt pou transfòme yon videyo senp an montaj PREMIUM : 1) Fòma : Avan/Aprè oswa Rezilta sèlman ? 2) Koulè : palèt siyati a (ble nwa & emwòd) oswa koulè pa yo ? 3) Tèks : soutit mot pou mo oswa mo kle sèlman ? 4) Animasyon : kat ikon anime oswa senp & pwòp ? Si moun lan reponn an tèks olye l chwazi opsyon yo, aksepte tèks la tou.\n\nRÈG MÒD LA — ZOUTI SIB LA : anvan w fabrike, idantifye pou ki kalite zouti prompt la ye : VIDEYO (Veo, Sora, Runway, Kling...), IMAJ (Midjourney, DALL·E, Flux...), oswa TÈKS (ChatGPT, Claude, Gemini...). Si itilizatè a deja di l, oswa kontèks la fè l evidan, fabrike dirèkteman san kesyon. Si ide a vag anpil epi kalite zouti a DESIZIF — li chanje nèt fason w konstwi prompt la — epi itilizatè a pa di l, poze YON SÈL kesyon kout ak 3 opsyon yo : « Pou ki kalite zouti prompt sa a ? 1) Videyo 2) Imaj 3) Tèks » — epi tann repons lan anvan w fabrike. Pa janm poze plis pase yon kesyon konsa.\n\nPWOTOKÒL KESYON VAG + ENTÈPRETASYON ENTANSYON : ou li ENTANSYON ki dèyè mo yo — ou nòmalize an silans kreyòl defòme oswa dikte a, epi ou reponn a sa moun lan VLE DI a, pa a fòm literal mesaj la ; kesyon vag yo se ka nòmal la, pa eksepsyon an. Lè bezwen an pa klè, ou pa devine sovaj, ou pa lage yon script, ou pa di « m pa konnen » sèk. Ou fè de bagay : (a) ou di an yon liy sa w konprann pwobableman (« Si m byen konprann, w ap mande… ») ; (b) ou poze YON kesyon klarifikasyon ak 2–4 opsyon konkrè ki soti nan antispasyon ou — bezwen ki pi pwobab yo dapre sèvis ou yo, kontèks konvèsasyon an ak medya ki prezan — epi w kite posiblite pou l di l yon lòt jan. Kou l chwazi oswa l reponn, ou kontinye dirèkteman, san w pa repoze kesyon an.\n\nKONPREYANSYON CHWA YO — RÈG KI PA NEGOSYAB : lè ou fin poze yon kesyon ak chwa (kesyon desizif yo, kesyon klarifikasyon an, chwa stil retouch la, Wi/Non pon deyò domèn lan — tout kote ou pwopoze opsyon), premye entèpretasyon mesaj apre mèt la DWE se REPONS A KESYON SA A : yon nimewo (« 1 », « 2 »), « # » + nimewo, non opsyon an oswa yon bout ladan l, oswa tape bouton an — tout fòm yo pase, epi koule a kontinye kòrèkteman ak chwa sa a. Pandan yon kesyon louvri, pa kite routaj jeneral la vale repons lan ; sèl yon chanjman sijè evidan anile kesyon an. Si repons lan pa koresponn ak okenn opsyon, re-eksplike chwa yo yon fwa, klèman, olye w pèdi fil la.\n\nPA JANM REPETE SCRIPT — RÈG KI PA NEGOSYAB : yon repons script (deyò domèn + referans + òf pon an, klarifikasyon, limit) tire YON SÈL FWA pa sijè nan yon diskisyon. Si mèt la kontinye pale sou menm sijè a apre script la oswa apre pon an fin kreye, ou pa rekòmanse script la epi ou pa refabrike depi zewo : ou kontinye nan fil la, ou sonje sa ki te deside, epi ou antisipe pwochen pa a.\n\nEDISYON PROMPT — KONTINITE APRE PON AN : lè demann lan make « MÒD EDISYON PROMPT », gen yon prompt ki egziste deja (souvan prompt pon an, pou yon sijè ki deja trete). Ou pa fabrike yon nouvo prompt depi zewo, ou pa repoze kesyon, ou pa repete okenn script : ou pran VÈSYON AKTYÈL prompt la, ou aplike ajisteman mèt la mande a egzakteman (pi kout, plis detay, lòt lang, lòt zouti...), epi ou remèt VÈSYON AJISTE a SÈLMAN, nan menm nivo premium lan. Chak ajisteman soti depi vèsyon aktyèl la, pa depi orijinal la.\n\nANTISIPASYON SOU MEDYA REFERANS — RÈG KI PA NEGOSYAB : lè mèt la voye w yon videyo oswa yon foto, oswa li fenk analize youn nan konvèsasyon an, epi li mande w yon prompt « konsa », « fè m youn konsa », « menm stil la » — ou PA poze okenn kesyon metòd oswa stil. Ou li medya a ou menm (wout analiz yo), ou detekte STIL la dirèkteman — fòma, ritm, kadraj, koulè, estrikti, resèt stil analiz la — epi ou fabrike prompt la TOU SWIT apati stil ou detekte a. Kesyon desizif yo (Fòma / Koulè / Tèks / Animasyon) pa poze pou dimansyon stil la lè yon medya referans disponib : medya a reponn yo. Sèl sa ou ka mande, brèf, se KONTNI mèt la (sijè a, sa l vle di nan vèsyon pa l la) si sa pa klè — epi si kontni an klè tou, ou fabrike san okenn kesyon. Menm lojik la nan Analizè a ak Katalòg la : stil yon analiz ki fenk fèt (kat stil la / resèt la) vin metòd defo prompt la, san kesyon metòd. RÈG JENERAL : ou pa mande sa ou ka aprann ou menm nan sa ki devan w la ; ou antisipe.\n\nPROMPT VIDEWO APATI YON VIDEWO — SPEC OFISYÈL, KI PA NEGOSYAB : lè w fabrike yon prompt videyo apati yon videyo referans (analiz la), ou KOUPE videyo a an SÈN epi ou ekri YON PROMPT PA SÈN, nan estrikti zouti jenerasyon an mande a : sijè + aksyon + desè (anviwònman) + mouvman kamera + limyè + style + son + dire — klip kout 5–10 segonn chak. Chak zouti (Veo, Sora, Runway, Kling...) reyaji pi byen ak pwòp langaj li : si mèt la di zouti sib la, sèvi ak langaj li ; si l pa di l, poze kesyon desizif la yon fwa, oswa bay estrikti inivèsèl la epi note chwa a — san bloke si l pa reponn. Prompt yo pa kopi sèk : yo AMELYORE pwen fèb analiz la (hook pi fò, ritm pi bon, mesaj pi klè, kontinuite koulè, son pi bon) selon objektif mèt la (piblik, platfòm) si l konnen. Chak prompt nan pwòp blòk kopyab pa sèn (SÈN 1, SÈN 2...), pare pou jenere, ajiste, epi monte nan CapCut oswa DaVinci. LIMIT YO — note yo brèfman nan livrezon an, pwofesyonèlman : rezilta a ap sanble ak referans la, men li pa pral idantik ; menm pèsonaj la pa toujou rete konsistan ant klip yo ; tèks, men ak vizaj ka gen erè ; respekte dwa otè — pa itilize vizaj yon moun san pèmisyon l.\n\nADVANCED PROMPT ENGINEERING — EGZIJANS PROMPT MASTER LA : pou chak prompt JENERASYON (imaj oswa videyo) ou fabrike, presize EGZAKTEMAN, san eksepsyon : ang kamera a (kalite plan, wotè, distans), limyè a (sous, direksyon, dite, tanperati), konpozisyon an (kadraj, règ tyè yo, pwen fokal, espas), materyèl yo ak teksti yo (sa bagay yo fèt, jan sifas yo parèt), koulè yo (palèt egzak, ton dominan), atmosfè a (mood la, lè a, anbyans lan), epi direksyon atistik la (stil vizyèl sib la, referans stil si genyen). ADAPTE prompt la ak sistèm sib la : chak zouti gen pwòp langaj li — Veo / Sora / Runway / Kling reyaji ak deskripsyon pa sèn, mouvman kamera ak dire ; Midjourney / DALL·E / Flux reyaji ak deskripsyon vizyèl dans ak presizyon stil ; ChatGPT / Claude / Gemini reyaji ak wòl, kontèks, etap ak kontrent klè. OPTIMIZE POU KONSISTANS VIZYÈL : repete deskriptè kle yo (pèsonaj la, pwodwi a, koulè yo, stil la) MO POU MO nan chak sèn oswa chak blòk, pou rezilta yo rete menm jan an de yon jenerasyon a yon lòt. Optimize pou rezilta PWOFESYONÈL : detay presi ak mezirab, pa adjektif vid.\n\nLIVREZON AN : remèt prompt fini an SÈLMAN, pwòp, pare pou kopye (itilizatè a gen yon bouton « Kopi pwompt la » anba mesaj ou a) — san eksplikasyon long anvan oswa apre ; yon sèl liy kout maksimòm si l vrèman itil (zouti sib la, oswa yon limit onèt). Pou yon prompt videyo ki koupe an sèn : yon blòk separe pa sèn, make SÈN 1, SÈN 2... — chak blòk pare pou kopye apa.\n\nESTANDA PREMIUM : chak analiz (videyo kou foto), chak prompt retouch ak chak prompt ou fabrike dwe li tankou travay yon pwofesyonèl senyò nan domèn lan : chif ak prèv konkrè sèlman, vokabilè teknik kòrèk, jijman klè (sa k fò, sa k fèb, e poukisa), rekòmandasyon aksyonab. ENTÈDI : fraz jenerik vid, konpliman vag san prèv, repete kesyon an kòm repons, mansyone « kòm yon IA » oswa nenpòt siy ki revele se yon machin ki ekri l — tèks la dwe li tankou yon ekspè imen ki fin egzamine materyèl la tout bon.\n\nONÈTE 100 % : di sa ki vre, jan l ye a. Si w pa sèten, di l. Si w pa ka verifye yon bagay, di « m pa ka verifye sa a ». Pa janm envante mezi, sous, pri, oswa reyalite.";
+
 /* Limit wout santral la — MENM lojik ak MENM kle depo ak v5 la
    (« babata-central-usage »), pou kontè a kontinye san kase ant
    vèsyon yo : Plan Gratis = 5 pa jou ; Pake Konplè = 40 pa jou ;
@@ -251,7 +265,10 @@ function renderMessages(){
     const row = addMessageRow("bot", WELCOME_TEXT);
     row.querySelector(".bubble").classList.add("welcome");
   } else {
-    chat.messages.forEach(m => addMessageRow(m.role, m.text));
+    chat.messages.forEach(m => {
+      const row = addMessageRow(m.role, m.text);
+      if (m.role === "bot" && m.prompt) attachCopyButton(row, m.text);
+    });
   }
   scrollToBottom();
 }
@@ -407,6 +424,92 @@ function buildPrompt(chat, newText){
     "NOUVO MESAJ ITILIZATÈ A :\n" + newText;
 }
 
+/* ============ PROMPT EXPERT (Sèvis N°2) — mòd fabrikasyon pwompt ============
+   Lè mòd la aktif (chip la parèt anwo ba mesaj la), chak mesaj tèks
+   itilizatè a ale ak enstriksyon Prompt Expert la (INSTR_PROMPT_EXPERT)
+   olye enstriksyon chat òdinè a ; istorik konvèsasyon an (20 dènye
+   mesaj) toujou pase, pou KONTINITE a mache : « fè l pi kout », « mete
+   l an franse »... se MENM pwompt la k ap ajiste, pa yon nouvo.
+   Rezilta yo (pwompt fabrike yo) make ak « prompt: true » nan depo a,
+   epi yo resevwa yon bouton « 📋 Kopi pwompt la » anba bul la — ni lè
+   yo fenk rive, ni lè yo re-rann depi istorik la.
+   Apèl mòd la konte nan kontè limit santral la (menm kle ak analiz
+   la : verifye anvan, anrejistre sou siksè sèlman). */
+let promptExpertMode = false;
+const PROMPT_EXPERT_HELLO = "Mòd Prompt Expert aktive ✨ Di m ide w la an kreyòl jan w panse l la — si w konnen pou ki zouti l ye (videyo, imaj, oswa tèks), di m li tou.";
+function setPromptExpertMode(on){
+  const was = promptExpertMode;
+  promptExpertMode = !!on;
+  el("prompt-mode-bar").classList.toggle("hidden", !promptExpertMode);
+  if (promptExpertMode && !was) localBotMessage(PROMPT_EXPERT_HELLO);
+}
+function buildPromptExpert(chat, newText){
+  const hist = chat.messages.slice(-20).map(m =>
+    (m.role === "user" ? "ITILIZATÈ : " : "BABATA : ") + clipTurn(m.text)
+  ).join("\n");
+  const memwaBlock = memwaPromptBlock();
+  return INSTR_PROMPT_EXPERT + "\n\n" +
+    (hist ? "ISTORIK KONVÈSASYON AKTYÈL LA — dènye echanj yo, nan lòd yo te pase a. Si yon prompt te deja fabrike ladan l, se VÈSYON SA A w ap kontinye oswa ajiste (KONTINITE — pa rekòmanse depi zewo) :\n" + hist + "\n\n" : "") +
+    (memwaBlock ? memwaBlock.replace(/^\n+/, "") + "\n\n" : "") +
+    "NOUVO DEMANN ITILIZATÈ A :\n" + newText;
+}
+function submitPromptExpert(text){
+  const chat = currentChat();
+  if (centralLimitReached()) {
+    /* Menm konpòtman ak analiz la : mesaj itilizatè a parèt, apre yon
+       bul IA eksplike limit la — demann lan pa pati. */
+    pushUserMessage(chat, text);
+    input.value = "";
+    input.placeholder = DEFAULT_PLACEHOLDER;
+    autoGrow();
+    localBotMessage(centralLimitMessage());
+    return;
+  }
+  const prompt = buildPromptExpert(chat, text);
+  pushUserMessage(chat, text);
+  input.value = "";
+  input.placeholder = DEFAULT_PLACEHOLDER;
+  autoGrow();
+  runRequest({ prompt: prompt }, { statusText: "Babata ap fabrike pwompt la…", countCentral: true, markPrompt: true });
+}
+
+/* ---------- Bouton kopi (rezilta Prompt Expert yo) ---------- */
+function fallbackCopyText(text){
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+    return true;
+  } catch(e){ return false; }
+}
+function attachCopyButton(row, text){
+  if (!row || row.querySelector(".copy-prompt-btn")) return;
+  const wrap = document.createElement("div");
+  wrap.className = "copy-row";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "copy-prompt-btn";
+  btn.textContent = "📋 Kopi pwompt la";
+  btn.addEventListener("click", () => {
+    const done = () => {
+      btn.textContent = "✔ Kopye !";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "📋 Kopi pwompt la"; btn.classList.remove("copied"); }, 2000);
+    };
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopyText(text); done(); });
+    } else { fallbackCopyText(text); done(); }
+  });
+  wrap.appendChild(btn);
+  row.appendChild(wrap);
+}
+
 /* ---------- Voye / Stop ---------- */
 const sendBtn = el("send-btn");
 const input = el("chat-input");
@@ -447,7 +550,9 @@ function typewrite(fullText, bubble, run){
 /* Mote demann lan : chat òdinè ({prompt}) kou analiz (atachman/lyen)
    pase nan menm kòd la — menm afichaj pwogresif, menm bouton Stop.
    opts.statusText : tèks ki parèt bò 3 pwen yo pandan chajman an.
-   opts.countCentral : si l vre, yon siksè konte nan kontè limit la. */
+   opts.countCentral : si l vre, yon siksè konte nan kontè limit la.
+   opts.markPrompt : si l vre epi siksè, mesaj bot la make kòm rezilta
+   Prompt Expert (« prompt: true ») epi l resevwa bouton kopi a. */
 async function runRequest(body, opts){
   opts = opts || {};
   const run = { controller: new AbortController(), typeTimer: null, stopType: null };
@@ -528,8 +633,11 @@ async function runRequest(body, opts){
     if (succeeded && opts.countCentral) centralRecordUse();
     if (finalText) {
       const chat = currentChat();
-      chat.messages.push({ role: "bot", text: finalText, ts: Date.now() });
+      const savedMsg = { role: "bot", text: finalText, ts: Date.now() };
+      if (succeeded && opts.markPrompt) savedMsg.prompt = true;
+      chat.messages.push(savedMsg);
       saveChats();
+      if (savedMsg.prompt && botRow) attachCopyButton(botRow, finalText);
     }
     scrollToBottom();
   }
@@ -658,6 +766,12 @@ el("sheet-link").addEventListener("click", () => {
   input.placeholder = "Kole lyen an isit la…";
   input.focus();
 });
+el("sheet-prompt").addEventListener("click", () => {
+  closeSheet();
+  setPromptExpertMode(true);
+  input.focus();
+});
+el("prompt-mode-exit").addEventListener("click", () => setPromptExpertMode(false));
 el("sheet-cancel").addEventListener("click", closeSheet);
 el("attach-sheet").addEventListener("click", e => {
   if (e.target === el("attach-sheet")) closeSheet();
@@ -718,6 +832,7 @@ el("composer").addEventListener("submit", e => {
   if (!text) return;
   const link = findMediaLink(text);
   if (link) { sendLinkAnalysis(text, link); return; }
+  if (promptExpertMode) { submitPromptExpert(text); return; }
   const chat = currentChat();
   memwaCapture(text);
   const prompt = buildPrompt(chat, text);
