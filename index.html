@@ -374,6 +374,22 @@
         align-self:flex-end; margin-bottom:2px; transition:transform .18s ease, background .18s ease;
       }
       .attach-btn:hover{ border-color:var(--accent); color:var(--accent-dark); }
+      /* Bouton mikwo : dikte mesaj la ak vwa (rekonesans vokal) */
+      .mic-btn{
+        flex:0 0 auto; width:40px; height:40px; min-height:40px; border-radius:50%;
+        border:1.5px solid var(--line); background:var(--surface2); color:var(--ink);
+        cursor:pointer; display:flex; align-items:center; justify-content:center;
+        align-self:flex-end; margin-bottom:2px; transition:background .18s ease, border-color .18s ease, color .18s ease;
+      }
+      .mic-btn[hidden]{ display:none; }
+      .mic-btn:hover{ border-color:var(--accent); color:var(--accent-dark); }
+      .mic-btn.recording{ background:#fde8e8; border-color:#e5534b; color:#c81e1e; }
+      /* Bouton lekti awotvwa anba mesaj Babata yo */
+      .tts-btn{
+        margin-top:8px; border:1.5px solid var(--line); background:var(--surface2); color:var(--ink);
+        border-radius:999px; padding:4px 12px; font:inherit; font-size:13px; cursor:pointer;
+      }
+      .tts-btn:hover{ border-color:var(--accent); color:var(--accent-dark); }
       .attach-btn[aria-expanded="true"]{ transform:rotate(45deg); background:var(--accent); border-color:var(--accent); color:#fff; }
       .attach-menu{
         background:var(--surface); border:1.5px solid var(--line); border-radius:16px;
@@ -855,6 +871,9 @@
               <div class="composer">
                 <button class="attach-btn" id="attach-btn" type="button" aria-label="Ajoute foto, videyo oswa fichye pou analize" aria-expanded="false" aria-controls="attach-menu">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+                <button class="mic-btn" id="mic-btn" type="button" aria-label="Pale — dikte mesaj ou a" aria-pressed="false" hidden>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/></svg>
                 </button>
                 <label class="sr-only" for="chat-input">Mesaj ou a pou Babata</label>
                 <textarea id="chat-input" rows="1" placeholder="Kòman m ka ede w ?"></textarea>
@@ -2635,12 +2654,76 @@ ONÈTETE RETOUCH LA — KI PA NEGOSYAB : ou pa modifye foto a ou menm. Wòl ou :
         messagesEl.appendChild(wrap);
         scrollChat();
       }
+      /* ============ Lekti awotvwa (TTS) : bouton « 🔊 Koute » anba chak
+         mesaj Babata — li tèks brit mesaj la (san makdown), peze ankò
+         pandan l ap pale = kanpe. Tèks la li nan moman klik la, konsa
+         kontni ki ranpli apre rann lan (prompt, rezilta…) li tou, epi
+         li mache ni pou sesyon an ni pou istorik ki re-rann. ============ */
+      var ttsCurrentBtn = null;
+      function ttsResetBtn(){
+        if (ttsCurrentBtn){ ttsCurrentBtn.textContent = "🔊 Koute"; ttsCurrentBtn = null; }
+      }
+      function ttsCleanText(bodyEl){
+        if (!bodyEl) return "";
+        var clone = bodyEl.cloneNode(true);
+        clone.querySelectorAll("button, .result-actions").forEach(function(n){ n.remove(); });
+        var t = clone.textContent || "";
+        t = t.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
+        t = t.replace(/\*\*([^*]+)\*\*/g, "$1").replace(/\*([^*]+)\*/g, "$1");
+        t = t.replace(/`+/g, "");
+        t = t.replace(/(^|\s)#{1,6}\s*/g, "$1");
+        t = t.replace(/\s+/g, " ").trim();
+        if (t.length > 1200) t = t.slice(0, 1200);
+        return t;
+      }
+      function ttsSpeak(bodyEl, btn){
+        if (!("speechSynthesis" in window)) return;
+        if (ttsCurrentBtn === btn){
+          window.speechSynthesis.cancel();
+          ttsResetBtn();
+          return;
+        }
+        window.speechSynthesis.cancel();
+        ttsResetBtn();
+        var text = ttsCleanText(bodyEl);
+        if (!text) return;
+        var u = new SpeechSynthesisUtterance(text);
+        u.lang = "fr-FR";
+        u.rate = 1.0;
+        try{
+          var voices = window.speechSynthesis.getVoices() || [];
+          for (var i = 0; i < voices.length; i++){
+            if (voices[i].lang && voices[i].lang.toLowerCase().indexOf("fr") === 0){ u.voice = voices[i]; break; }
+          }
+        }catch(e){}
+        ttsCurrentBtn = btn;
+        btn.textContent = "⏹ Kanpe";
+        u.onend = function(){ if (ttsCurrentBtn === btn) ttsResetBtn(); };
+        u.onerror = function(){ if (ttsCurrentBtn === btn) ttsResetBtn(); };
+        window.speechSynthesis.speak(u);
+      }
+      function attachTtsButton(wrap){
+        try{
+          if (!("speechSynthesis" in window)) return;
+          var bubble = wrap.querySelector(".bubble");
+          var body = wrap.querySelector(".body");
+          if (!bubble || !body) return;
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "tts-btn";
+          btn.textContent = "🔊 Koute";
+          btn.setAttribute("aria-label", "Koute mesaj Babata a awotvwa");
+          btn.addEventListener("click", function(){ ttsSpeak(body, btn); });
+          bubble.appendChild(btn);
+        }catch(e){}
+      }
       function addBotMsg(html){
         var wrap = document.createElement("div");
         wrap.className = "msg msg-bot";
         wrap.innerHTML = BOT_AVATAR +
           '<div class="bubble"><div class="from">Babata</div><div class="body">' + html + "</div></div>";
         messagesEl.appendChild(wrap);
+        attachTtsButton(wrap);
         scrollChat();
         return wrap;
       }
@@ -5025,6 +5108,68 @@ ONÈTETE RETOUCH LA — KI PA NEGOSYAB : ou pa modifye foto a ou menm. Wòl ou :
         input.style.height = Math.min(input.scrollHeight, 140) + "px";
       }
       input.addEventListener("input", autoGrow);
+
+      /* ============ Rekonesans vokal : bouton mikwo a dikte mesaj la
+         nan bwat tèks la (li pa janm voye otomatikman — moun lan verifye
+         epi peze voye a li menm). Eseye kreyòl (ht-HT) anvan ; si
+         navigatè a pa sipòte lang lan, reeseye franse (fr-FR). Si API a
+         pa la ditou, bouton an rete kache. ============ */
+      (function(){
+        var micBtn = document.getElementById("mic-btn");
+        if (!micBtn) return;
+        var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) return;
+        micBtn.hidden = false;
+        var activeRec = null;
+        var triedFallback = false;
+        function setRecUI(on){
+          micBtn.classList.toggle("recording", on);
+          micBtn.setAttribute("aria-pressed", on ? "true" : "false");
+        }
+        function startRec(lang){
+          var r = new SR();
+          activeRec = r;
+          r.lang = lang;
+          r.interimResults = false;
+          r.continuous = false;
+          r.onresult = function(ev){
+            var txt = "";
+            for (var i = ev.resultIndex; i < ev.results.length; i++){
+              if (ev.results[i].isFinal) txt += ev.results[i][0].transcript;
+            }
+            txt = txt.trim();
+            if (!txt) return;
+            var cur = input.value.replace(/\s+$/, "");
+            input.value = cur ? cur + " " + txt : txt;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            input.focus();
+          };
+          r.onerror = function(ev){
+            if (ev && ev.error === "language-not-supported" && !triedFallback){
+              triedFallback = true;
+              startRec("fr-FR");
+              return;
+            }
+            if (activeRec === r){ activeRec = null; setRecUI(false); }
+          };
+          r.onend = function(){
+            if (activeRec === r){ activeRec = null; setRecUI(false); }
+          };
+          try{ r.start(); setRecUI(true); }
+          catch(e){ if (activeRec === r) activeRec = null; setRecUI(false); }
+        }
+        micBtn.addEventListener("click", function(){
+          if (activeRec){
+            var r = activeRec;
+            activeRec = null;
+            setRecUI(false);
+            try{ r.stop(); }catch(e){}
+            return;
+          }
+          triedFallback = false;
+          startRec("ht-HT");
+        });
+      })();
 
       function newChat(){
         startNewDiscussion();
