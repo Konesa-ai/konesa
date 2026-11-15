@@ -144,15 +144,15 @@ button{ font-family:inherit; cursor:pointer; }
   display:inline-flex; align-items:center; justify-content:center;
 }
 
-/* ===== Chip Mòd Prompt Expert + Amelyore Kopi (anwo ba mesaj la) ===== */
-#prompt-mode-bar, #kopi-mode-bar{
+/* ===== Chip Mòd Prompt Expert + Amelyore Kopi + Kreye Imaj (anwo ba mesaj la) ===== */
+#prompt-mode-bar, #kopi-mode-bar, #imaj-mode-bar{
   display:flex; align-items:center; gap:8px;
   margin:8px 12px 0; padding:8px 10px;
   background:#101c33; border:1px solid var(--accent);
   border-radius:14px; font-size:14px;
 }
-#prompt-mode-bar .pm-label, #kopi-mode-bar .pm-label{ flex:1; font-weight:600; }
-#prompt-mode-exit, #kopi-mode-exit{
+#prompt-mode-bar .pm-label, #kopi-mode-bar .pm-label, #imaj-mode-bar .pm-label{ flex:1; font-weight:600; }
+#prompt-mode-exit, #kopi-mode-exit, #imaj-mode-exit{
   width:28px; height:28px; flex:0 0 auto;
   border-radius:50%; border:1px solid var(--border);
   background:var(--panel); color:var(--text); font-size:13px;
@@ -181,6 +181,16 @@ button{ font-family:inherit; cursor:pointer; }
   color:var(--muted); font-size:13px; padding:6px 12px; margin-left:8px;
 }
 .speak-btn.speaking{ color:var(--accent); border-color:var(--accent); }
+
+/* ===== Mòd Kreye Imaj : imaj jenere a + pwompt ki te sèvi a ===== */
+.gen-img{ display:block; width:100%; border-radius:12px; }
+.gen-prompt{ margin-top:8px; font-size:12.5px; line-height:1.4; color:var(--muted); white-space:pre-wrap; word-break:break-word; }
+
+/* ===== Bouton « Telechaje » anba imaj jenere yo ===== */
+.dl-btn{
+  display:inline-block; background:none; border:1px solid var(--border); border-radius:999px;
+  color:var(--muted); font-size:13px; padding:6px 12px; text-decoration:none;
+}
 
 /* ===== Panèl aksyon (action sheet, bouton +) ===== */
 .sheet-overlay{

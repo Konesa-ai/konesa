@@ -345,11 +345,22 @@ function renderMessages(){
     row.querySelector(".bubble").classList.add("welcome");
   } else {
     chat.messages.forEach(m => {
-      const row = addMessageRow(m.role, m.text);
+      const isImageMsg = m.role === "bot" && m.image && m.image.data;
+      const row = addMessageRow(m.role, isImageMsg ? "" : m.text);
       if (m.role === "bot") {
-        if (m.prompt) attachCopyButton(row, m.text);
-        attachSaveButton(row, m.text);
-        attachSpeakButton(row, m.text);
+        if (isImageMsg) {
+          /* Mesaj imaj (Kreye Imaj) : rekonstwi bul imaj la epi
+             re-atache tout bouton yo, menm jan ak lè l te fenk rive. */
+          const dataUrl = fillImageBubble(row, { imageBase64: m.image.data, mimeType: m.image.mime, promptUsed: m.image.promptUsed || "" });
+          if (m.image.promptUsed) attachCopyButton(row, m.image.promptUsed);
+          attachDownloadButton(row, dataUrl, m.image.mime);
+          attachSaveImageButton(row, dataUrl, m.image.promptUsed || m.text);
+          attachSpeakButton(row, m.image.promptUsed || m.text);
+        } else {
+          if (m.prompt) attachCopyButton(row, m.text);
+          attachSaveButton(row, m.text);
+          attachSpeakButton(row, m.text);
+        }
       }
     });
   }
@@ -938,7 +949,7 @@ let promptExpertMode = false;
 const PROMPT_EXPERT_HELLO = "Mòd Prompt Expert aktive ✨ Di m ide w la an kreyòl jan w panse l la — si w konnen pou ki zouti l ye (videyo, imaj, oswa tèks), di m li tou.";
 function setPromptExpertMode(on){
   const was = promptExpertMode;
-  if (on && kopiMode) setKopiMode(false); /* De mòd yo eksklizif */
+  if (on) { if (kopiMode) setKopiMode(false); setImajMode(false); } /* Mòd yo eksklizif */
   promptExpertMode = !!on;
   el("prompt-mode-bar").classList.toggle("hidden", !promptExpertMode);
   if (promptExpertMode && !was) localBotMessage(PROMPT_EXPERT_HELLO);
@@ -995,7 +1006,7 @@ const KOPI_PLACEHOLDER = "Kole kopi w la isit la…";
 const KOPI_HELLO = "Mòd Amelyore Kopi aktive ✍️ Kole kopi w la isit la — script videyo, tèks piblisite, lejand, post, oswa yon prompt ou gen deja — epi m ap remèt ou vèsyon amelyore a, pare pou kopye.";
 function setKopiMode(on){
   const was = kopiMode;
-  if (on) setPromptExpertMode(false);
+  if (on) { setPromptExpertMode(false); setImajMode(false); }
   kopiMode = !!on;
   el("kopi-mode-bar").classList.toggle("hidden", !kopiMode);
   input.placeholder = kopiMode ? KOPI_PLACEHOLDER : DEFAULT_PLACEHOLDER;
@@ -1029,6 +1040,180 @@ function submitKopi(text){
   input.placeholder = KOPI_PLACEHOLDER;
   autoGrow();
   runRequest({ prompt: prompt }, { statusText: "Babata ap amelyore kopi a…", countCentral: true, markPrompt: true });
+}
+
+/* ============ KREYE IMAJ (Sèvis N°4) — mòd jenerasyon imaj ============
+   Menm mekanis jeneral ak mòd Prompt Expert / Amelyore Kopi yo
+   (chip anwo ba mesaj la, eksklizivite total : aktive youn fèmen
+   lòt yo — setImajMode rele setPromptExpertMode(false) ak
+   setKopiMode(false), epi de lòt yo rele setImajMode(false) lè y ap
+   aktive). Diferans lan : demann lan pa yon prompt tèks pou motè
+   chat la — se yon POST { mode: "imaj", prompt: <deskripsyon
+   itilizatè a> } sou MENM CHAT_API a, ak MENM header token yo.
+   Sèvè a (fonksyon v11) ekri pwompt pwofesyonèl la epi jenere imaj
+   la via Pollinations ; repons lan se { ok:true, imageBase64,
+   mimeType, promptUsed }.
+   Limit santral la : verifye anvan voye, konte sou SIKSE sèlman
+   (menm kle « babata-central-usage », menm mesaj limit la).
+   Bouton Stop la mache menm jan ak lòt demann yo : runImageRequest
+   anrejistre run li a nan currentRun ak yon AbortController —
+   stopRun() anile fetch la (lè Stop peze : anyen pa montre, anyen
+   pa sove, menm jan ak runRequest).
+   Istorik : mesaj imaj la sove ak imaj la (chan « image ») si
+   base64 la < 800 000 karaktè ; sinon tèks la vin plas la
+   (IMAJ_TOO_BIG_TEXT) epi re-rann lan montre l kòm bul òdinè. */
+let imajMode = false;
+const IMAJ_PLACEHOLDER = "Dekri imaj ou vle a…";
+const IMAJ_HELLO = "Mòd Kreye Imaj aktive 🎨 Dekri imaj ou vle a an kreyòl, jan w panse l la — m ap ekri yon pwompt pwofesyonèl pou li, epi m ap jenere imaj la pou ou. Sa ka pran kèk segonn.";
+const IMAJ_ERROR_TEXT = "Babata pa rive kreye imaj la kounye a. Eseye ankò nan yon ti moman.";
+const IMAJ_TOO_BIG_TEXT = "🖼 Yon imaj te jenere isit la (twò gwo pou istorik la)";
+function setImajMode(on){
+  const was = imajMode;
+  if (on) { setPromptExpertMode(false); setKopiMode(false); }
+  imajMode = !!on;
+  el("imaj-mode-bar").classList.toggle("hidden", !imajMode);
+  input.placeholder = imajMode ? IMAJ_PLACEHOLDER : (kopiMode ? KOPI_PLACEHOLDER : DEFAULT_PLACEHOLDER);
+  if (imajMode && !was) localBotMessage(IMAJ_HELLO);
+}
+function submitImaj(text){
+  const chat = currentChat();
+  if (centralLimitReached()) {
+    /* Menm konpòtman ak lòt mòd yo : mesaj itilizatè a parèt, apre
+       yon bul IA eksplike limit la — demann lan pa pati. */
+    pushUserMessage(chat, text);
+    input.value = "";
+    input.placeholder = IMAJ_PLACEHOLDER;
+    autoGrow();
+    localBotMessage(centralLimitMessage());
+    return;
+  }
+  pushUserMessage(chat, text);
+  input.value = "";
+  input.placeholder = IMAJ_PLACEHOLDER;
+  autoGrow();
+  runImageRequest(text);
+}
+/* Ranpli bul yon mesaj imaj : imaj la an gwo (kwen won, lajè konplè)
+   + pwompt premium ki te sèvi a an ti tèks gri anba l. Retounen
+   data URL imaj la (pou bouton Telechaje / Sove yo). */
+function fillImageBubble(row, resp){
+  const bubble = row.querySelector(".bubble");
+  const mime = resp.mimeType || "image/jpeg";
+  const dataUrl = "data:" + mime + ";base64," + resp.imageBase64;
+  bubble.textContent = "";
+  const img = document.createElement("img");
+  img.className = "gen-img";
+  img.src = dataUrl;
+  img.alt = resp.promptUsed || "Imaj Babata jenere";
+  bubble.appendChild(img);
+  if (resp.promptUsed) {
+    const p = document.createElement("div");
+    p.className = "gen-prompt";
+    p.textContent = resp.promptUsed;
+    bubble.appendChild(p);
+  }
+  return dataUrl;
+}
+/* Bouton « ⬇️ Telechaje » : lyen download sou data URL imaj la. */
+function attachDownloadButton(row, dataUrl, mimeType){
+  if (!row || row.querySelector(".dl-btn")) return;
+  const wrap = document.createElement("div");
+  wrap.className = "copy-row";
+  const a = document.createElement("a");
+  a.className = "dl-btn";
+  a.href = dataUrl;
+  a.download = "babata-imaj-" + Date.now() + ((mimeType && mimeType.indexOf("png") >= 0) ? ".png" : ".jpg");
+  a.textContent = "⬇️ Telechaje";
+  a.setAttribute("aria-label", "Telechaje imaj la");
+  wrap.appendChild(a);
+  row.appendChild(wrap);
+}
+/* Bouton « 📌 Sove » pou bul imaj yo : menm aparans ak menm feedback
+   ak attachSaveButton a, men li sove atik la nan Bibliyotèk la kòm
+   kind « foto » — minyati a se imaj la menm (si gwosè a rezonab),
+   tit la se kòmansman pwompt ki te sèvi a. */
+function attachSaveImageButton(row, dataUrl, promptUsed){
+  if (!row || row.querySelector(".save-msg-btn")) return;
+  const wrap = document.createElement("div");
+  wrap.className = "copy-row";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "save-msg-btn";
+  btn.textContent = "📌 Sove";
+  btn.setAttribute("aria-label", "Sove imaj sa a nan Bibliyotèk la");
+  btn.addEventListener("click", () => {
+    const item = { id: uid(), kind: "foto", title: String(promptUsed || "Imaj Babata").slice(0, 40), ts: Date.now() };
+    if (dataUrl && dataUrl.length < 1500000) item.thumb = dataUrl;
+    libraryItems.unshift(item);
+    saveList(LIBRARY_KEY, libraryItems);
+    btn.textContent = "✔ Sove";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "📌 Sove"; btn.classList.remove("copied"); }, 2000);
+  });
+  wrap.appendChild(btn);
+  row.appendChild(wrap);
+}
+function showImageError(){
+  const chat = currentChat();
+  chat.messages.push({ role: "bot", text: IMAJ_ERROR_TEXT, ts: Date.now() });
+  saveChats();
+  const row = addMessageRow("bot", IMAJ_ERROR_TEXT);
+  attachSaveButton(row, IMAJ_ERROR_TEXT);
+  attachSpeakButton(row, IMAJ_ERROR_TEXT);
+  scrollToBottom();
+}
+async function runImageRequest(userText){
+  const run = { controller: new AbortController(), typeTimer: null, stopType: null };
+  currentRun = run;
+  setSendingUI(true);
+  const typingRow = addTypingRow("Babata ap kreye imaj la…");
+  try {
+    const res = await fetch(CHAT_API.url, {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + CHAT_API.anonKey,
+        "apikey": CHAT_API.anonKey,
+        "x-babata-token": CHAT_API.token,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ mode: "imaj", prompt: userText }),
+      signal: run.controller.signal
+    });
+    let data = null;
+    try { data = await res.json(); } catch(e){}
+    if (typingRow.isConnected) typingRow.remove();
+    if (data && data.ok && typeof data.imageBase64 === "string" && data.imageBase64) {
+      centralRecordUse(); /* Limit santral la konte sou siksè sèlman */
+      const promptUsed = typeof data.promptUsed === "string" ? data.promptUsed : "";
+      const mime = (typeof data.mimeType === "string" && data.mimeType) ? data.mimeType : "image/jpeg";
+      const botRow = addMessageRow("bot", "");
+      const dataUrl = fillImageBubble(botRow, { imageBase64: data.imageBase64, mimeType: mime, promptUsed: promptUsed });
+      if (promptUsed) attachCopyButton(botRow, promptUsed);
+      attachDownloadButton(botRow, dataUrl, mime);
+      attachSaveImageButton(botRow, dataUrl, promptUsed || userText);
+      attachSpeakButton(botRow, promptUsed || userText);
+      const savedMsg = { role: "bot", text: promptUsed || userText, ts: Date.now() };
+      if (data.imageBase64.length < 800000) {
+        savedMsg.image = { data: data.imageBase64, mime: mime, promptUsed: promptUsed };
+      } else {
+        savedMsg.text = IMAJ_TOO_BIG_TEXT;
+      }
+      const chat = currentChat();
+      chat.messages.push(savedMsg);
+      saveChats();
+    } else {
+      /* { ok:false } oswa repons enkonpreansib : erè onèt an kreyòl */
+      showImageError();
+    }
+  } catch (e) {
+    if (typingRow.isConnected) typingRow.remove();
+    if (!run.controller.signal.aborted) showImageError();
+    /* Si Stop peze (abort) : anyen pa montre, anyen pa sove. */
+  } finally {
+    setSendingUI(false);
+    if (currentRun === run) currentRun = null;
+    scrollToBottom();
+  }
 }
 
 /* ---------- Bouton kopi (rezilta Prompt Expert yo) ---------- */
@@ -1408,6 +1593,12 @@ el("sheet-kopi").addEventListener("click", () => {
   input.focus();
 });
 el("kopi-mode-exit").addEventListener("click", () => setKopiMode(false));
+el("sheet-imaj").addEventListener("click", () => {
+  closeSheet();
+  setImajMode(true);
+  input.focus();
+});
+el("imaj-mode-exit").addEventListener("click", () => setImajMode(false));
 el("sheet-cancel").addEventListener("click", closeSheet);
 el("attach-sheet").addEventListener("click", e => {
   if (e.target === el("attach-sheet")) closeSheet();
@@ -1484,6 +1675,7 @@ el("composer").addEventListener("submit", e => {
   if (link) { sendLinkAnalysis(text, link); return; }
   if (promptExpertMode) { submitPromptExpert(text); return; }
   if (kopiMode) { submitKopi(text); return; }
+  if (imajMode) { submitImaj(text); return; }
   const chat = currentChat();
   memwaCapture(text);
   const prompt = buildPrompt(chat, text);
