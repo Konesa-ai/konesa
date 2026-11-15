@@ -48,6 +48,15 @@
     </section>
   </main>
 
+  <!-- ===== CHIP ATACHMAN (fichye chwazi a, pare pou voye) ===== -->
+  <div id="attach-bar" class="hidden">
+    <span id="attach-icon" aria-hidden="true">📷</span>
+    <span id="attach-name"></span>
+    <span id="attach-size"></span>
+    <button id="attach-remove" type="button" aria-label="Retire fichye a">✕</button>
+  </div>
+  <input id="file-input" type="file" accept="image/*,video/*" hidden>
+
   <!-- ===== BA MESAJ ===== -->
   <form id="composer" autocomplete="off">
     <button id="plus-btn" class="round-btn gray" type="button" aria-label="Plis">+</button>
@@ -96,10 +105,25 @@
   </div>
 </aside>
 
+<!-- ===== PANÈL AKSYON (bouton +) ===== -->
+<div id="attach-sheet" class="sheet-overlay hidden">
+  <div class="sheet-card">
+    <button id="sheet-gallery" class="sheet-action" type="button">📷 Foto / Videyo (galeri)</button>
+    <button id="sheet-link" class="sheet-action" type="button">🔗 Lyen TikTok / YouTube</button>
+    <button id="sheet-cancel" class="sheet-action cancel" type="button">Anile</button>
+  </div>
+</div>
+
 <!-- ===== PANÈL PARAMÈT ===== -->
 <div id="settings-panel" class="modal hidden">
   <div class="modal-card">
     <h3>Paramèt</h3>
+    <div class="memwa-section">
+      <h4>🧠 Memwa Babata sou ou</h4>
+      <div id="memwa-body"></div>
+      <button id="memwa-wipe-btn" class="ghost" type="button">Efase memwa a</button>
+      <p id="memwa-status" class="version"></p>
+    </div>
     <button id="wipe-btn" class="danger" type="button">Efase tout istwa a</button>
     <p class="version">Vèsyon 1.0</p>
     <button id="settings-close" class="ghost" type="button">Fèmen</button>
