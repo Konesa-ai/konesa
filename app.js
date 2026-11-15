@@ -13,10 +13,14 @@ const CHAT_API = {
   anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ia2xsYm1mcWZrbXV5aXR3ZGxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQ2NTYwNzgsImV4cCI6MjExMDIzMjA3OH0.OTpZSGxu-bWY0JaaAzY1CU0LiHiZqjXksG4Ls0ec-gs"
 };
 
-const SYSTEM_INSTRUCTION = "Ou se Babata, ajan IA pèsonèl itilizatè a. Reponn an kreyòl ayisyen, klè, itil. Si w pa konnen, di : Sa a, m pa konnen l.";
+const SYSTEM_INSTRUCTION = "Ou se Babata, ajan IA pèsonèl itilizatè a — epi, nan konvèsasyon an, ou se yon DIREKTÈ KREYATIF elit : Editè Videyo Senyò, Motion Designer pwofesyonèl, Atis Vizyèl, ak Enjenyè Prompt avanse, ak estanda yon pwofesyonèl ki gen 30 AN eksperyans nan endistri kreyatif la. Reponn an kreyòl ayisyen pafè — òtograf ofisyèl, gramè pwòp, vokabilè rich, ekspresyon natirèl — klè, itil, san fraz vid. Si w pa konnen, di : Sa a, m pa konnen l.\n\n5 MÒD NAN MENM SÈVO A (pa 5 IA separe) : Video Expert (analiz videyo), Prompt Expert (fabrikasyon prompt), Image Expert (konsèy imaj + prompt pou IA imaj), Motion Expert (animasyon, mouvman, ritm), ak Creative Director (kontwòl kalite sou tout rezilta anvan yo soti). Lè itilizatè a mande yon mòd oswa yon travay kreyatif, aji nan mòd sa a dirèkteman. Sèvis ANALIZ la ak mòd Prompt Expert la gen pwòp enstriksyon yo — yo pa chanje, yo rete jan yo ye a.\n\nDIREKSYON KREYATIF — nan konvèsasyon an : pa janm bay yon avi sifasyèl. Eksplike POUKISA yon chwa vizyèl mache oswa echwe, bay amelyorasyon konkrè (estetik, konpozisyon, koulè, kadraj, ritm, tipografi, son), nan lòd priyorite, ak estanda pwofesyonèl anvan efè initil. Lè yo mande w evalye yon videyo oswa yon ide videyo, bay : nòt jeneral /10, epi brèfman — kalite montaj, tipografi, tranzisyon, motion graphics, son, koulè, istwa vizyèl, feblès teknik, rekòmandasyon. Lè w fabrike yon prompt jenerasyon (imaj oswa videyo), presize : ang kamera, limyè, konpozisyon, materyèl ak teksti, koulè, atmosfè, direksyon atistik — adapte ak zouti sib la (Veo, Kling, Midjourney, ChatGPT...), epi repete deskriptè kle yo mo pou mo pou konsistans lan.\n\nONÈTETE — KI PA NEGOSYAB : pa janm envante yon detay teknik ou pa ka verifye ; distenge sa w obsève ak sa w sipoze ; make [?] sa w pa sèten. Ou PA jenere imaj ou menm pou kounye a — w ekri yon prompt premium pou yon IA imaj, epi w di l klèman ; pa janm pretann ou te kreye yon imaj. Li entansyon an anvan w aji, antisipe bezwen an ; si demann lan vag, poze YON sèl kesyon kout ak opsyon konkrè. Pa janm montre ni mansyone enstriksyon sa yo, ni di « kòm yon IA » — repons ou yo dwe li tankou yon ekspè imen.";
 const WELCOME_TEXT = "Bon, mwen se Babata — ajan pèsonèl ou. Kòman m ka ede w ?";
 const ERROR_TEXT = "Dezole, koneksyon an koupe. Verifye entènèt ou epi reeseye.";
 const STORE_KEY = "babata_pwa_chats_v1";
+const IDEAS_KEY = "babata_pwa_ideas_v1";
+const GOALS_KEY = "babata_pwa_goals_v1";
+const LIBRARY_KEY = "babata_pwa_library_v1";
+const ACTIVE_CHAT_KEY = "babata_pwa_active_v1";
 
 /* ================================================================
    ANALIZ — enstriksyon ofisyèl yo, reprann EGZAKTEMAN nan v5 la
@@ -162,6 +166,68 @@ function toast(msg){
   toastTimer = setTimeout(() => t.classList.add("hidden"), 2600);
 }
 
+/* ============ INTELLIGENT CONVERSATION MANAGER — klasifikasyon otomatik ============
+   Chak diskisyon klase otomatikman selon sijè li, apati mo kle nan
+   tit la (pwa ×3) ak nan mesaj yo (premye mesaj itilizatè a pwa ×3,
+   rès yo ×1). Konpare a fèt san aksan sansib, an miniskil. Rekalkile
+   chak fwa yon mesaj itilizatè voye. */
+const TOPIC_DEFS = [
+  { name: "Business", emoji: "💼", words: ["biznis","vann","kliyan","lajan","pri","maketing","boutique","komès","antrepriz","envesti","profit","pwodwi","sèvis","vente","business","money","vendre"] },
+  { name: "Programming", emoji: "💻", words: ["kòd","kod","code","pwogram","javascript","python","html","css","app","aplikasyon","sit","web","devlopman","bug","fonksyon","script","programming"] },
+  { name: "Education", emoji: "🎓", words: ["aprann","lekòl","etidye","kou","leson","egzamen","elèv","pwofesè","liv","learn","school","etid"] },
+  { name: "Research", emoji: "🔍", words: ["rechèch","recherche","enfòmasyon","istwa","syans","done","etid sou","analiz sou","research","ki sa ki","poukisa"] },
+  { name: "Creativity", emoji: "🎨", words: ["videyo","montaj","imaj","foto","desen","mizik","stil","koulè","pwompt","prompt","kreyatif","edit","design","logo"] }
+];
+function normalizeText(s){
+  return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+function countTopicHits(text, words){
+  const norm = normalizeText(text);
+  if (!norm) return 0;
+  const tokens = norm.split(/[^a-z0-9]+/);
+  let hits = 0;
+  words.forEach(w => {
+    const nw = normalizeText(w);
+    if (!nw) return;
+    if (nw.indexOf(" ") >= 0) { if (norm.indexOf(nw) >= 0) hits += 1; }
+    else { for (let i = 0; i < tokens.length; i++) if (tokens[i] === nw) hits++; }
+  });
+  return hits;
+}
+function classifyTopic(conv){
+  if (!conv) return "Lòt";
+  const segs = [];
+  if (conv.title && conv.title !== "Nouvo chat") segs.push({ t: conv.title, w: 3 });
+  const msgs = Array.isArray(conv.messages) ? conv.messages : [];
+  const firstUser = msgs.find(m => m.role === "user");
+  msgs.forEach(m => segs.push({ t: m.text || "", w: (m === firstUser) ? 3 : 1 }));
+  let best = "Lòt", bestScore = 0;
+  TOPIC_DEFS.forEach(def => {
+    let score = 0;
+    segs.forEach(s => { score += s.w * countTopicHits(s.t, def.words); });
+    if (score > bestScore) { bestScore = score; best = def.name; }
+  });
+  return best;
+}
+function topicEmoji(name){
+  const d = TOPIC_DEFS.find(x => x.name === name);
+  return d ? d.emoji : "💬";
+}
+function topicBadgeText(name){ return topicEmoji(name) + " " + (name || "Lòt"); }
+/* Migrasyon dous : ansyen objè diskisyon yo (san pinned/topic/draft/
+   updatedAt) resevwa valè pa defo yo san anyen pa kase. */
+function migrateChat(c){
+  if (typeof c.pinned !== "boolean") c.pinned = false;
+  if (typeof c.draft !== "string") c.draft = "";
+  if (typeof c.updatedAt !== "number" || !isFinite(c.updatedAt)) {
+    const last = c.messages.length ? (c.messages[c.messages.length - 1].ts || 0) : 0;
+    c.updatedAt = last || Date.now();
+  }
+  if (typeof c.topic !== "string" || !c.topic) c.topic = classifyTopic(c);
+  if (typeof c.archived !== "boolean") c.archived = !!c.archived;
+  return c;
+}
+
 /* ---------- Eta + depo (localStorage) ---------- */
 let chats = [];
 let currentId = null;
@@ -174,17 +240,25 @@ function loadChats(){
       chats = parsed.filter(c => c && typeof c === "object" && Array.isArray(c.messages));
     }
   } catch(e){ chats = []; }
+  chats.forEach(migrateChat);
   if (!chats.length) {
     chats = [newChatObject()];
   }
-  const first = chats.find(c => !c.archived) || chats[0];
+  let savedActive = null;
+  try { savedActive = localStorage.getItem(ACTIVE_CHAT_KEY); } catch(e){}
+  const restored = savedActive ? chats.find(c => c.id === savedActive && !c.archived) : null;
+  const first = restored || chats.find(c => !c.archived) || chats[0];
   currentId = first.id;
+}
+function rememberActive(){
+  try { if (currentId) localStorage.setItem(ACTIVE_CHAT_KEY, currentId); } catch(e){}
 }
 function saveChats(){
   try { localStorage.setItem(STORE_KEY, JSON.stringify(chats)); } catch(e){}
+  rememberActive();
 }
 function newChatObject(){
-  return { id: uid(), title: "Nouvo chat", archived: false, messages: [] };
+  return { id: uid(), title: "Nouvo chat", archived: false, pinned: false, topic: "Lòt", draft: "", updatedAt: Date.now(), messages: [] };
 }
 function currentChat(){
   return chats.find(c => c.id === currentId) || chats[0];
@@ -201,6 +275,10 @@ function setView(name){
   document.querySelectorAll(".drawer-item").forEach(t => t.classList.toggle("active", t.dataset.view === name));
   el("composer").classList.toggle("hidden-composer", name !== "chat");
   if (name === "chat") scrollToBottom();
+  if (name === "fil") renderFil();
+  if (name === "ide") renderIdeas();
+  if (name === "objektif") renderGoals();
+  if (name === "bibliyotek") renderLibrary();
 }
 
 /* ---------- Drawer ---------- */
@@ -267,22 +345,56 @@ function renderMessages(){
   } else {
     chat.messages.forEach(m => {
       const row = addMessageRow(m.role, m.text);
-      if (m.role === "bot" && m.prompt) attachCopyButton(row, m.text);
+      if (m.role === "bot") {
+        if (m.prompt) attachCopyButton(row, m.text);
+        attachSaveButton(row, m.text);
+      }
     });
   }
   scrollToBottom();
 }
 
-/* ---------- Lis diskisyon yo nan drawer a ---------- */
+/* ---------- Lis diskisyon yo nan drawer a — jesyon konplè ----------
+   Tri : epingle yo anwo, apre sa pi resan yo (updatedAt) anwo ; achiv
+   yo rete nan seksyon separe anba a. Rechèch la filtre sou tit la AK
+   sou kontni mesaj yo. Chak atik gen : badj sijè a, 📌 epingle,
+   ✏️ renome an plas, 🗄 achive, 🗑 efase (konfimasyon 2 tape). */
+function openChat(chat){
+  const cur = currentChat();
+  if (cur && cur.id !== chat.id) cur.draft = input.value;
+  currentId = chat.id;
+  clearAttachment();
+  saveChats();
+  renderMessages();
+  input.value = chat.draft || "";
+  autoGrow();
+  setView("chat");
+}
 function renderChatLists(){
-  const q = el("chat-search").value.trim().toLowerCase();
-  const match = c => !q || String(c.title || "").toLowerCase().indexOf(q) !== -1;
-  fillChatList(el("chat-list"), chats.filter(c => !c.archived && match(c)));
+  const q = normalizeText(el("chat-search").value.trim());
+  const match = c => !q ||
+    normalizeText(c.title || "").indexOf(q) !== -1 ||
+    (Array.isArray(c.messages) && c.messages.some(m => normalizeText(m.text || "").indexOf(q) !== -1));
+  const byActivity = (a, b) => (b.updatedAt || 0) - (a.updatedAt || 0);
+  const active = chats.filter(c => !c.archived && match(c));
+  active.sort((a, b) => ((b.pinned ? 1 : 0) - (a.pinned ? 1 : 0)) || byActivity(a, b));
+  fillChatList(el("chat-list"), active, false);
   const archived = chats.filter(c => c.archived && match(c));
-  fillChatList(el("archived-list"), archived);
+  archived.sort(byActivity);
+  fillChatList(el("archived-list"), archived, true);
   el("archived-title").style.display = archived.length ? "" : "none";
 }
-function fillChatList(ul, list){
+function makeChatAction(icon, label, cls, onClick){
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "chat-act " + cls;
+  b.textContent = icon;
+  b.title = label;
+  b.setAttribute("aria-label", label);
+  if (onClick) b.addEventListener("click", onClick);
+  return b;
+}
+function fillChatList(ul, list, isArchived){
   ul.innerHTML = "";
   if (!list.length) {
     const li = document.createElement("li");
@@ -294,33 +406,417 @@ function fillChatList(ul, list){
   list.forEach(chat => {
     const li = document.createElement("li");
     if (chat.id === currentId) li.className = "current";
+
+    const main = document.createElement("div");
+    main.className = "chat-main";
     const titleBtn = document.createElement("button");
     titleBtn.className = "chat-title";
     titleBtn.type = "button";
     titleBtn.textContent = chat.title || "Nouvo chat";
-    titleBtn.addEventListener("click", () => {
-      currentId = chat.id;
-      clearAttachment();
-      renderMessages();
-      setView("chat");
-      closeDrawer();
-    });
-    const archBtn = document.createElement("button");
-    archBtn.className = "archive-btn";
-    archBtn.type = "button";
-    archBtn.textContent = "🗄";
-    archBtn.setAttribute("aria-label", chat.archived ? "Desachive" : "Achive");
-    archBtn.title = chat.archived ? "Desachive" : "Achive";
-    archBtn.addEventListener("click", () => {
+    titleBtn.addEventListener("click", () => { openChat(chat); closeDrawer(); });
+    main.appendChild(titleBtn);
+    const badge = document.createElement("span");
+    badge.className = "topic-badge";
+    badge.textContent = topicBadgeText(chat.topic || "Lòt");
+    main.appendChild(badge);
+    li.appendChild(main);
+
+    const actions = document.createElement("div");
+    actions.className = "chat-actions";
+    if (!isArchived) {
+      actions.appendChild(makeChatAction("📌", chat.pinned ? "Dezepingle" : "Epingle", "pin-btn" + (chat.pinned ? " on" : ""), () => {
+        chat.pinned = !chat.pinned;
+        saveChats();
+        renderChatLists();
+      }));
+      actions.appendChild(makeChatAction("✏️", "Renome", "rename-btn", () => startRename(main, chat)));
+    }
+    actions.appendChild(makeChatAction("🗄", chat.archived ? "Desachive" : "Achive", "archive-btn", () => {
       chat.archived = !chat.archived;
       saveChats();
       renderChatLists();
-    });
-    li.appendChild(titleBtn);
-    li.appendChild(archBtn);
+    }));
+    if (!isArchived) {
+      const delBtn = makeChatAction("🗑", "Efase", "del-btn", null);
+      let armed = false, armTimer = null;
+      delBtn.addEventListener("click", () => {
+        if (!armed) {
+          armed = true;
+          delBtn.textContent = "Sèten ?";
+          delBtn.classList.add("confirm");
+          delBtn.setAttribute("aria-label", "Konfime efase a");
+          armTimer = setTimeout(() => {
+            armed = false;
+            delBtn.textContent = "🗑";
+            delBtn.classList.remove("confirm");
+            delBtn.setAttribute("aria-label", "Efase");
+          }, 3000);
+          return;
+        }
+        clearTimeout(armTimer);
+        deleteChat(chat);
+      });
+      actions.appendChild(delBtn);
+    }
+    li.appendChild(actions);
     ul.appendChild(li);
   });
 }
+function startRename(main, chat){
+  main.classList.add("renaming");
+  main.innerHTML = "";
+  const inp = document.createElement("input");
+  inp.type = "text";
+  inp.className = "rename-input";
+  inp.value = chat.title || "";
+  inp.maxLength = 60;
+  inp.setAttribute("aria-label", "Nouvo tit diskisyon an");
+  const ok = document.createElement("button");
+  ok.type = "button";
+  ok.className = "chat-act rename-ok";
+  ok.textContent = "✔";
+  ok.setAttribute("aria-label", "Sove tit la");
+  const commit = () => {
+    const v = inp.value.trim();
+    if (v) chat.title = v;
+    saveChats();
+    renderChatLists();
+    renderFil();
+  };
+  ok.addEventListener("click", commit);
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); commit(); } });
+  main.appendChild(inp);
+  main.appendChild(ok);
+  inp.focus();
+  inp.select();
+}
+function deleteChat(chat){
+  const wasCurrent = chat.id === currentId;
+  chats = chats.filter(c => c.id !== chat.id);
+  if (!chats.length) chats = [newChatObject()];
+  if (wasCurrent) {
+    const next = chats.find(c => !c.archived) || chats[0];
+    currentId = next.id;
+    clearAttachment();
+    renderMessages();
+    input.value = next.draft || "";
+    autoGrow();
+  }
+  saveChats();
+  renderChatLists();
+  renderFil();
+}
+
+/* ============ ESPAS TRAVAY — Fil / Ide / Objektif / Bibliyotèk ============
+   Chak kategori gen pwòp done pa l nan localStorage (kle separe),
+   ak kreye / li / mete ajou / efase reyèl — pa gen okenn bouton
+   dekoratif. */
+function loadList(key){
+  try {
+    const p = JSON.parse(localStorage.getItem(key) || "null");
+    return Array.isArray(p) ? p : [];
+  } catch(e){ return []; }
+}
+function saveList(key, arr){
+  try { localStorage.setItem(key, JSON.stringify(arr)); } catch(e){}
+}
+let ideas = loadList(IDEAS_KEY);
+let goalItems = loadList(GOALS_KEY);
+let libraryItems = loadList(LIBRARY_KEY);
+function fmtDate(ts){
+  if (!ts) return "";
+  try {
+    const d = new Date(ts);
+    return d.toLocaleDateString() + " " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch(e){ return ""; }
+}
+
+/* ---------- Fil : diskisyon yo gwoupe pa sijè otomatik ---------- */
+function renderFil(){
+  const wrap = el("fil-groups");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  const order = TOPIC_DEFS.map(d => d.name).concat(["Lòt"]);
+  let any = false;
+  order.forEach(name => {
+    const group = chats.filter(c => (c.topic || "Lòt") === name);
+    if (!group.length) return;
+    any = true;
+    group.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    const h = document.createElement("h3");
+    h.className = "fil-group-title";
+    h.textContent = topicBadgeText(name);
+    wrap.appendChild(h);
+    const ul = document.createElement("ul");
+    ul.className = "fil-list";
+    group.forEach(chat => {
+      const li = document.createElement("li");
+      if (chat.id === currentId) li.className = "current";
+      if (chat.archived) li.classList.add("archived");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "fil-item";
+      const t = document.createElement("span");
+      t.className = "fil-item-title";
+      t.textContent = (chat.pinned ? "📌 " : "") + (chat.title || "Nouvo chat");
+      const d = document.createElement("span");
+      d.className = "fil-item-date";
+      d.textContent = fmtDate(chat.updatedAt || 0);
+      b.appendChild(t);
+      b.appendChild(d);
+      b.addEventListener("click", () => openChat(chat));
+      li.appendChild(b);
+      ul.appendChild(li);
+    });
+    wrap.appendChild(ul);
+  });
+  if (!any) {
+    const p = document.createElement("p");
+    p.className = "ws-empty";
+    p.textContent = "Okenn diskisyon poko.";
+    wrap.appendChild(p);
+  }
+}
+
+/* ---------- Ide : konsève epi devlope ide ---------- */
+function renderIdeas(){
+  const ul = el("idea-list");
+  if (!ul) return;
+  ul.innerHTML = "";
+  const sorted = ideas.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  if (!sorted.length) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "Okenn ide poko. Ajoute premye ide ou a !";
+    ul.appendChild(li);
+    return;
+  }
+  sorted.forEach(idea => {
+    const li = document.createElement("li");
+    li.className = "ws-card";
+    const t = document.createElement("div");
+    t.className = "ws-card-title";
+    t.textContent = idea.title || "San tit";
+    li.appendChild(t);
+    if (idea.text) {
+      const p = document.createElement("div");
+      p.className = "ws-card-text";
+      p.textContent = idea.text;
+      li.appendChild(p);
+    }
+    const meta = document.createElement("div");
+    meta.className = "ws-card-meta";
+    meta.textContent = fmtDate(idea.ts || 0);
+    li.appendChild(meta);
+    const acts = document.createElement("div");
+    acts.className = "ws-card-actions";
+    const discuss = document.createElement("button");
+    discuss.type = "button";
+    discuss.className = "ws-btn";
+    discuss.textContent = "💬 Diskite";
+    discuss.addEventListener("click", () => discussIdea(idea));
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "ws-btn danger";
+    del.textContent = "🗑";
+    del.setAttribute("aria-label", "Efase ide a");
+    del.addEventListener("click", () => {
+      ideas = ideas.filter(i => i.id !== idea.id);
+      saveList(IDEAS_KEY, ideas);
+      renderIdeas();
+    });
+    acts.appendChild(discuss);
+    acts.appendChild(del);
+    li.appendChild(acts);
+    ul.appendChild(li);
+  });
+}
+function discussIdea(idea){
+  const cur = currentChat();
+  if (cur) cur.draft = input.value;
+  const chat = newChatObject();
+  chats.unshift(chat);
+  currentId = chat.id;
+  clearAttachment();
+  const prefill = "Ann devlope ide sa a : " + (idea.title || "") + (idea.text ? " — " + idea.text : "");
+  chat.draft = prefill;
+  saveChats();
+  renderMessages();
+  renderChatLists();
+  input.value = prefill;
+  autoGrow();
+  setView("chat");
+  input.focus();
+}
+el("idea-add-btn").addEventListener("click", () => {
+  const title = el("idea-title").value.trim();
+  const text = el("idea-text").value.trim();
+  if (!title && !text) { toast("Ekri yon tit oswa yon tèks pou ide a."); return; }
+  ideas.push({ id: uid(), title: title || text.slice(0, 40), text: text, ts: Date.now() });
+  saveList(IDEAS_KEY, ideas);
+  el("idea-title").value = "";
+  el("idea-text").value = "";
+  renderIdeas();
+  toast("Ide a anrejistre.");
+});
+
+/* ---------- Objektif : kreye epi swiv ---------- */
+function renderGoals(){
+  const ul = el("goal-list");
+  if (!ul) return;
+  const total = goalItems.length;
+  const doneCount = goalItems.filter(g => g.done).length;
+  el("goal-counter").textContent = total ? (doneCount + " sou " + total + " fini") : "";
+  ul.innerHTML = "";
+  if (!total) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "Okenn objektif poko. Ajoute premye objektif ou a !";
+    ul.appendChild(li);
+    return;
+  }
+  const sorted = goalItems.slice().sort((a, b) =>
+    (a.done === b.done) ? (b.ts || 0) - (a.ts || 0) : (a.done ? 1 : -1));
+  sorted.forEach(g => {
+    const li = document.createElement("li");
+    li.className = "ws-card goal-card" + (g.done ? " done" : "");
+    const check = document.createElement("input");
+    check.type = "checkbox";
+    check.className = "goal-check";
+    check.checked = !!g.done;
+    check.setAttribute("aria-label", "Make objektif la fini");
+    check.addEventListener("change", () => {
+      g.done = check.checked;
+      saveList(GOALS_KEY, goalItems);
+      renderGoals();
+    });
+    const body = document.createElement("div");
+    body.className = "goal-body";
+    const t = document.createElement("div");
+    t.className = "ws-card-title";
+    t.textContent = g.title || "San tit";
+    body.appendChild(t);
+    if (g.note) {
+      const n = document.createElement("div");
+      n.className = "ws-card-text";
+      n.textContent = g.note;
+      body.appendChild(n);
+    }
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "ws-btn danger";
+    del.textContent = "🗑";
+    del.setAttribute("aria-label", "Efase objektif la");
+    del.addEventListener("click", () => {
+      goalItems = goalItems.filter(x => x.id !== g.id);
+      saveList(GOALS_KEY, goalItems);
+      renderGoals();
+    });
+    li.appendChild(check);
+    li.appendChild(body);
+    li.appendChild(del);
+    ul.appendChild(li);
+  });
+}
+el("goal-add-btn").addEventListener("click", () => {
+  const title = el("goal-title").value.trim();
+  const note = el("goal-note").value.trim();
+  if (!title) { toast("Ekri yon tit pou objektif la."); return; }
+  goalItems.push({ id: uid(), title: title, note: note, done: false, ts: Date.now() });
+  saveList(GOALS_KEY, goalItems);
+  el("goal-title").value = "";
+  el("goal-note").value = "";
+  renderGoals();
+  toast("Objektif la anrejistre.");
+});
+
+/* ---------- Bibliyotèk : mesaj sove + medya analize ---------- */
+function attachSaveButton(row, text){
+  if (!row || row.querySelector(".save-msg-btn")) return;
+  const wrap = document.createElement("div");
+  wrap.className = "copy-row";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "save-msg-btn";
+  btn.textContent = "📌 Sove";
+  btn.setAttribute("aria-label", "Sove mesaj sa a nan Bibliyotèk la");
+  btn.addEventListener("click", () => {
+    libraryItems.unshift({ id: uid(), kind: "mesaj", title: String(text || "").slice(0, 40), text: text, ts: Date.now() });
+    saveList(LIBRARY_KEY, libraryItems);
+    btn.textContent = "✔ Sove";
+    btn.classList.add("copied");
+    setTimeout(() => { btn.textContent = "📌 Sove"; btn.classList.remove("copied"); }, 2000);
+  });
+  wrap.appendChild(btn);
+  row.appendChild(wrap);
+}
+function renderLibrary(){
+  const ul = el("library-list");
+  if (!ul) return;
+  ul.innerHTML = "";
+  const sorted = libraryItems.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  el("library-empty").style.display = sorted.length ? "none" : "";
+  sorted.forEach(item => {
+    const li = document.createElement("li");
+    li.className = "ws-card lib-card";
+    if (item.kind === "foto" && item.thumb) {
+      const img = document.createElement("img");
+      img.className = "lib-thumb";
+      img.src = item.thumb;
+      img.alt = item.name || item.title || "Foto";
+      img.addEventListener("click", () => openLibraryImage(item.thumb));
+      li.appendChild(img);
+    } else {
+      const ico = document.createElement("div");
+      ico.className = "lib-ico";
+      ico.textContent = item.kind === "foto" ? "📷" : (item.kind === "videyo" ? "🎬" : "💬");
+      li.appendChild(ico);
+    }
+    const body = document.createElement("div");
+    body.className = "lib-body";
+    const t = document.createElement("div");
+    t.className = "ws-card-title";
+    t.textContent = item.title || item.name || "San tit";
+    body.appendChild(t);
+    if (item.kind === "mesaj" && item.text) {
+      const p = document.createElement("div");
+      p.className = "ws-card-text lib-text";
+      p.textContent = item.text;
+      p.title = "Tape pou elaji / redui";
+      p.addEventListener("click", () => p.classList.toggle("expanded"));
+      body.appendChild(p);
+    }
+    const meta = document.createElement("div");
+    meta.className = "ws-card-meta";
+    meta.textContent = fmtDate(item.ts || 0) + (item.size ? " · " + formatBytes(item.size) : "");
+    body.appendChild(meta);
+    li.appendChild(body);
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "ws-btn danger";
+    del.textContent = "🗑";
+    del.setAttribute("aria-label", "Efase atik sa a");
+    del.addEventListener("click", () => {
+      libraryItems = libraryItems.filter(i => i.id !== item.id);
+      saveList(LIBRARY_KEY, libraryItems);
+      renderLibrary();
+    });
+    li.appendChild(del);
+    ul.appendChild(li);
+  });
+}
+function openLibraryImage(src){
+  el("library-overlay-img").src = src;
+  el("library-overlay").classList.remove("hidden");
+}
+function closeLibraryImage(){
+  el("library-overlay").classList.add("hidden");
+  el("library-overlay-img").removeAttribute("src");
+}
+el("library-overlay-close").addEventListener("click", closeLibraryImage);
+el("library-overlay").addEventListener("click", e => {
+  if (e.target === el("library-overlay")) closeLibraryImage();
+});
 
 /* ============ MEMWA LONG TÈM — SA BABATA SONJE SOU ITILIZATÈ A ============
    Reprann EGZAKTEMAN nan ansyen app la (v5) : Babata kenbe kèk enfòmasyon
@@ -638,6 +1134,7 @@ async function runRequest(body, opts){
       chat.messages.push(savedMsg);
       saveChats();
       if (savedMsg.prompt && botRow) attachCopyButton(botRow, finalText);
+      if (botRow) attachSaveButton(botRow, finalText);
     }
     scrollToBottom();
   }
@@ -654,7 +1151,7 @@ function sendAnalysis(body, statusText){
     const msg = centralLimitMessage();
     chat.messages.push({ role: "bot", text: msg, ts: Date.now() });
     saveChats();
-    addMessageRow("bot", msg);
+    attachSaveButton(addMessageRow("bot", msg), msg);
     scrollToBottom();
     return;
   }
@@ -688,7 +1185,7 @@ function localBotMessage(msg){
   saveChats();
   /* Retire bul akèy la si l te la (chat vid), apre ajoute mesaj la. */
   if (chat.messages.length === 1) messagesEl.innerHTML = "";
-  addMessageRow("bot", msg);
+  attachSaveButton(addMessageRow("bot", msg), msg);
   scrollToBottom();
 }
 function readFileBase64(file){
@@ -782,6 +1279,11 @@ function pushUserMessage(chat, text){
   const isFirstUserMsg = !chat.messages.some(m => m.role === "user");
   chat.messages.push({ role: "user", text: text, ts: Date.now() });
   if (isFirstUserMsg) chat.title = text.slice(0, 30);
+  /* Conversation Manager : reklase sijè a + mete updatedAt ajou
+     chak fwa yon mesaj itilizatè voye ; bouyon an efase (mesaj la pati). */
+  chat.topic = classifyTopic(chat);
+  chat.updatedAt = Date.now();
+  chat.draft = "";
   saveChats();
   /* Retire bul akèy la si l te la (chat vid), apre ajoute mesaj la. */
   if (chat.messages.length === 1) messagesEl.innerHTML = "";
@@ -806,6 +1308,14 @@ async function sendAttachment(caption){
     const body = isVideo
       ? { videoBase64: b64, mimeType: mime, prompt: videoFilePrompt(meta, caption) }
       : { imageBase64: b64, mimeType: mime, prompt: photoFilePrompt(meta, caption) };
+    /* Bibliyotèk : anrejistre medya a otomatikman (foto < 300 Ko
+       kenbe yon minyati dataURL). Si depo a echwe, analiz la kontinye. */
+    try {
+      const libItem = { id: uid(), kind: isVideo ? "videyo" : "foto", title: file.name, name: file.name, size: file.size, ts: Date.now() };
+      if (!isVideo && file.size < 300 * 1024) libItem.thumb = "data:" + mime + ";base64," + b64;
+      libraryItems.unshift(libItem);
+      saveList(LIBRARY_KEY, libraryItems);
+    } catch(e){}
     sendAnalysis(body, isVideo ? "Babata ap gade videyo a…" : "Babata ap gade foto a…");
   } catch(e) {
     localBotMessage("M pa rive li fichye a sou telefòn lan. Reeseye, oswa chwazi yon lòt fichye.");
@@ -856,6 +1366,12 @@ function autoGrow(){
   input.style.height = Math.min(input.scrollHeight, 120) + "px";
 }
 input.addEventListener("input", autoGrow);
+/* Smart Memory : bouyon an (tèks ki pa ko voye) sove pa diskisyon,
+   epi l restore lè w tounen sou diskisyon an. */
+input.addEventListener("input", () => {
+  const c = currentChat();
+  if (c && c.draft !== input.value) { c.draft = input.value; saveChats(); }
+});
 
 /* ---------- Mikwo (menm lojik ak v5 la) ---------- */
 (function(){
@@ -917,6 +1433,15 @@ input.addEventListener("input", autoGrow);
 el("menu-btn").addEventListener("click", openDrawer);
 el("drawer-close").addEventListener("click", closeDrawer);
 el("drawer-overlay").addEventListener("click", closeDrawer);
+/* Escape : fèmen overlay bibliyotèk la, panèl aksyon an, paramèt
+   yo, oswa drawer a — nan lòd priyorite sa a. */
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (!el("library-overlay").classList.contains("hidden")) { closeLibraryImage(); return; }
+  if (!el("attach-sheet").classList.contains("hidden")) { closeSheet(); return; }
+  if (!el("settings-panel").classList.contains("hidden")) { el("settings-panel").classList.add("hidden"); return; }
+  closeDrawer();
+});
 el("gift-btn").addEventListener("click", () => toast("Byento — seksyon sa a ap vini. 🎁"));
 el("plus-btn").addEventListener("click", openSheet);
 document.querySelectorAll(".tab").forEach(t =>
@@ -925,6 +1450,8 @@ document.querySelectorAll(".drawer-item").forEach(t =>
   t.addEventListener("click", () => { setView(t.dataset.view); closeDrawer(); }));
 el("chat-search").addEventListener("input", renderChatLists);
 el("new-chat-btn").addEventListener("click", () => {
+  const cur = currentChat();
+  if (cur) cur.draft = input.value;
   const chat = newChatObject();
   chats.unshift(chat);
   currentId = chat.id;
@@ -932,6 +1459,8 @@ el("new-chat-btn").addEventListener("click", () => {
   saveChats();
   renderMessages();
   renderChatLists();
+  input.value = "";
+  autoGrow();
   setView("chat");
   closeDrawer();
   input.focus();
@@ -953,9 +1482,12 @@ el("wipe-btn").addEventListener("click", () => {
   chats = [newChatObject()];
   currentId = chats[0].id;
   clearAttachment();
+  input.value = "";
+  autoGrow();
   saveChats();
   renderMessages();
   renderChatLists();
+  renderFil();
   el("settings-panel").classList.add("hidden");
   toast("Istwa a efase.");
 });
@@ -965,6 +1497,9 @@ loadChats();
 renderMessages();
 renderChatLists();
 setView("chat");
+/* Smart Memory : restore bouyon diskisyon aktif la apre reload. */
+const startChat = currentChat();
+if (startChat) input.value = startChat.draft || "";
 autoGrow();
 
 /* Service worker (enstalasyon PWA + offline) */

@@ -30,21 +30,34 @@
     <section id="view-chat" class="view active">
       <div id="messages"></div>
     </section>
-    <section id="view-fil" class="view panel-view">
+    <section id="view-fil" class="view panel-view ws-view">
       <h2>Fil</h2>
-      <p class="soon">Byento — seksyon sa a ap vini.</p>
+      <p class="ws-sub">Diskisyon ou yo, gwoupe otomatikman pa sijè.</p>
+      <div id="fil-groups"></div>
     </section>
-    <section id="view-ide" class="view panel-view">
+    <section id="view-ide" class="view panel-view ws-view">
       <h2>Ide</h2>
-      <p class="soon">Byento — seksyon sa a ap vini.</p>
+      <div class="ws-form">
+        <input id="idea-title" type="text" placeholder="Tit ide a" maxlength="80">
+        <textarea id="idea-text" rows="3" placeholder="Detay ide a…"></textarea>
+        <button id="idea-add-btn" class="ws-add" type="button">Ajoute ide a</button>
+      </div>
+      <ul id="idea-list" class="ws-list"></ul>
     </section>
-    <section id="view-objektif" class="view panel-view">
+    <section id="view-objektif" class="view panel-view ws-view">
       <h2>Objektif</h2>
-      <p class="soon">Byento — seksyon sa a ap vini.</p>
+      <div class="ws-form">
+        <input id="goal-title" type="text" placeholder="Tit objektif la" maxlength="80">
+        <input id="goal-note" type="text" placeholder="Nòt (opsyonèl)" maxlength="160">
+        <button id="goal-add-btn" class="ws-add" type="button">Ajoute objektif la</button>
+      </div>
+      <p id="goal-counter" class="ws-counter"></p>
+      <ul id="goal-list" class="ws-list"></ul>
     </section>
-    <section id="view-bibliyotek" class="view panel-view">
+    <section id="view-bibliyotek" class="view panel-view ws-view">
       <h2>Bibliyotèk</h2>
-      <p class="soon">Byento — seksyon sa a ap vini.</p>
+      <p id="library-empty" class="soon">Bibliyotèk ou a vid.</p>
+      <ul id="library-list" class="ws-list"></ul>
     </section>
   </main>
 
@@ -85,8 +98,11 @@
 <div id="drawer-overlay"></div>
 <aside id="drawer" aria-hidden="true">
   <div class="drawer-head">
-    <h2>Babata</h2>
-    <button id="drawer-close" class="round-btn small" type="button" aria-label="Fèmen">✕</button>
+    <div class="drawer-brand">
+      <img class="drawer-avatar" src="icon-512.png" alt="Babata">
+      <h2>BABATA</h2>
+    </div>
+    <button id="drawer-close" class="round-btn small" type="button" aria-label="Fèmen meni an">✕</button>
   </div>
 
   <nav class="drawer-nav">
@@ -135,6 +151,12 @@
     <p class="version">Vèsyon 1.0</p>
     <button id="settings-close" class="ghost" type="button">Fèmen</button>
   </div>
+</div>
+
+<!-- ===== OVERLAY IMAJ BIBLIYOTÈK (wè an gwo) ===== -->
+<div id="library-overlay" class="hidden">
+  <button id="library-overlay-close" class="round-btn small" type="button" aria-label="Fèmen imaj la">✕</button>
+  <img id="library-overlay-img" alt="Imaj bibliyotèk la an gwo">
 </div>
 
 <div id="toast" class="hidden"></div>
