@@ -499,3 +499,24 @@ button{ font-family:inherit; cursor:pointer; }
 }
 .account-profile-lines .ws-sub{ margin:2px 0 0; }
 .auth-logout{ background:var(--danger); border-color:var(--danger); }
+
+/* ===== Plan yo (v10) — seksyon « 📦 Plan mwen » nan View Kont la ===== */
+.plan-section{ margin:18px 0 6px; }
+.plan-heading{ margin:0 0 8px; font-size:17px; }
+.plan-name{ margin:0 0 4px; font-size:20px; font-weight:700; }
+.plan-cards{ display:flex; flex-direction:column; gap:10px; margin:14px 0 10px; }
+.plan-card{
+  background:var(--panel-2); border:1px solid var(--border);
+  border-radius:14px; padding:14px;
+}
+.plan-card.current{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+.plan-card-name{ margin:0 0 4px; font-weight:700; font-size:16px; }
+.plan-pop{ color:var(--accent); font-size:13.5px; font-weight:600; }
+.plan-card-price{ margin:0 0 4px; font-weight:600; }
+.plan-card-desc{ margin:0; color:var(--muted); font-size:14.5px; }
+.plan-card-badge{
+  display:inline-block; margin-top:10px; padding:4px 10px;
+  background:var(--accent); color:#fff; border-radius:999px;
+  font-size:13px; font-weight:600;
+}
+.plan-note{ margin:6px 0 0; }

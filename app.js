@@ -3,6 +3,10 @@
    BABATA PWA — app.js
    Entèfas chat mobil-first : istwa nan localStorage, apèl chat la
    pase nan yon sèl fonksyon sendChat() ki sèvi ak CHAT_API anba a.
+   v10 : seksyon « 📦 Plan mwen » nan View Kont la (apèl {mode:"plan"}
+   bò sèvè a, kat 3 plan peye yo ak badj plan aktyèl la) epi mesaj
+   limit sèvè zanmitay la (error "limit_kont" nan koule jenerasyon
+   yo — chat, analiz, imaj).
    ================================================================ */
 
 /* Konfigirasyon endpoint chat la.
@@ -1067,6 +1071,10 @@ let imajMode = false;
 const IMAJ_PLACEHOLDER = "Dekri imaj ou vle a…";
 const IMAJ_HELLO = "Mòd Kreye Imaj aktive 🎨 Dekri imaj ou vle a an kreyòl, jan w panse l la — m ap ekri yon pwompt pwofesyonèl pou li, epi m ap jenere imaj la pou ou. Sa ka pran kèk segonn.";
 const IMAJ_ERROR_TEXT = "Babata pa rive kreye imaj la kounye a. Eseye ankò nan yon ti moman.";
+/* Mesaj limit bò SÈVÈ a (v10) : lè fonksyon an reponn ak
+   error "limit_kont" (limit plan kont lan rive), bul sa a ranplase
+   mesaj erè jenerik la nan tout koule jenerasyon yo. */
+const SERVER_LIMIT_TEXT = "🌙 Limit plan ou a rive pou jodi a. Ou ka tann demen, oswa pase sou yon plan siperyè — gade yo nan « Kont Babata mwen ».";
 const IMAJ_TOO_BIG_TEXT = "🖼 Yon imaj te jenere isit la (twò gwo pou istorik la)";
 function setImajMode(on){
   const was = imajMode;
@@ -1163,6 +1171,18 @@ function showImageError(){
   attachSpeakButton(row, IMAJ_ERROR_TEXT);
   scrollToBottom();
 }
+/* Bul limit sèvè a (v10) : menm mekanis ak showImageError a, men ak
+   mesaj limit zanmitay la — sèvi nan koule imaj la lè sèvè a reponn
+   error "limit_kont". */
+function showServerLimitMessage(){
+  const chat = currentChat();
+  chat.messages.push({ role: "bot", text: SERVER_LIMIT_TEXT, ts: Date.now() });
+  saveChats();
+  const row = addMessageRow("bot", SERVER_LIMIT_TEXT);
+  attachSaveButton(row, SERVER_LIMIT_TEXT);
+  attachSpeakButton(row, SERVER_LIMIT_TEXT);
+  scrollToBottom();
+}
 async function runImageRequest(userText){
   const run = { controller: new AbortController(), typeTimer: null, stopType: null };
   currentRun = run;
@@ -1197,6 +1217,9 @@ async function runImageRequest(userText){
       const chat = currentChat();
       chat.messages.push(savedMsg);
       saveChats();
+    } else if (data && data.error === "limit_kont") {
+      /* Limit plan kont lan rive bò sèvè a : mesaj zanmitay la (v10) */
+      showServerLimitMessage();
     } else {
       /* { ok:false } oswa repons enkonpreansib : erè onèt an kreyòl */
       showImageError();
@@ -1373,11 +1396,13 @@ async function runRequest(body, opts){
       signal: run.controller.signal
     });
     if (!res.ok) {
-      let serverMsg = "";
+      let serverMsg = "", limitHit = false;
       try {
         const d = await res.json();
-        if (d && typeof d.error === "string") serverMsg = d.error;
+        if (d && d.error === "limit_kont") limitHit = true;
+        else if (d && typeof d.error === "string") serverMsg = d.error;
       } catch(e){}
+      if (limitHit) { const le = new Error(SERVER_LIMIT_TEXT); le.limitKont = true; throw le; }
       throw new Error(serverMsg || "HTTP " + res.status);
     }
     typingRow.remove();
@@ -1401,6 +1426,7 @@ async function runRequest(body, opts){
       buf += decoder.decode();
       if (isJson) {
         const data = JSON.parse(buf);
+        if (data && data.error === "limit_kont") { const le = new Error(SERVER_LIMIT_TEXT); le.limitKont = true; throw le; }
         fullText = (data && typeof data.text === "string") ? data.text : "";
         await typewrite(fullText, botBubble, run);
       } else {
@@ -1408,6 +1434,7 @@ async function runRequest(body, opts){
       }
     } else {
       const data = await res.json();
+      if (data && data.error === "limit_kont") { const le = new Error(SERVER_LIMIT_TEXT); le.limitKont = true; throw le; }
       fullText = (data && typeof data.text === "string") ? data.text : "";
       await typewrite(fullText, botBubble, run);
     }
@@ -1420,7 +1447,8 @@ async function runRequest(body, opts){
       finalText = botBubble ? botBubble.textContent : "";
       if (!finalText && botRow) botRow.remove();
     } else {
-      const msg = (e && typeof e.message === "string" && e.message && !/^HTTP \d+$/.test(e.message) && !/fetch/i.test(e.message))
+      const msg = (e && e.limitKont) ? SERVER_LIMIT_TEXT
+        : (e && typeof e.message === "string" && e.message && !/^HTTP \d+$/.test(e.message) && !/fetch/i.test(e.message))
         ? e.message : ERROR_TEXT;
       if (!botRow) { botRow = addMessageRow("bot", msg); botBubble = botRow.querySelector(".bubble"); }
       else botBubble.textContent = msg;
@@ -2163,6 +2191,71 @@ function renderAccount(){
     el("account-profile-avatar").textContent = accountInitial(user);
     el("account-profile-email").textContent = user.email || user.name || "Kont mwen";
     el("account-profile-provider").textContent = providerLabel(user.provider);
+    loadPlanInfo();
+  }
+}
+
+/* ---------- Plan itilizatè a (v10) ----------
+   Seksyon « 📦 Plan mwen » nan View Kont la : lè view a louvri ak
+   yon sesyon aktif, yon apèl { mode:"plan" } sou menm endpoint chat
+   la (menm header yo, ak « x-babata-user » a) rekipere plan aktyèl
+   la, limit li, itilizasyon jodi a ak dat ekspirasyon an. Sesyon an
+   refresh anvan si l prèt pou ekspire (< 120 s — menm mekanis ak
+   initAuth la). Nenpòt echèk : seksyon an montre « Plan : — » an
+   silans — zewo blòk, zewo alèt. */
+const PLAN_LABELS = { gratis: "GRATIS", debaz: "BABATA", pro: "BABATA PRO", promax: "BABATA PRO MAX" };
+let planInfoLoading = false;
+function formatPlanDate(iso){
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  try { return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }); }
+  catch(e){ return d.toLocaleDateString(); }
+}
+function markCurrentPlanCard(plan){
+  document.querySelectorAll(".plan-card").forEach(card => {
+    const mine = card.getAttribute("data-plan") === plan;
+    card.classList.toggle("current", mine);
+    const badge = card.querySelector(".plan-card-badge");
+    if (badge) badge.classList.toggle("hidden", !mine);
+  });
+}
+function resetPlanSection(){
+  const n = el("plan-name"); if (n) n.textContent = "Plan : —";
+  const u = el("plan-usage"); if (u) u.textContent = "";
+  const x = el("plan-expires"); if (x) x.textContent = "";
+  markCurrentPlanCard("");
+}
+async function loadPlanInfo(){
+  if (planInfoLoading) return;
+  if (!sessionUser()) return;
+  if (!el("plan-name")) return;
+  planInfoLoading = true;
+  try {
+    const s = loadSession();
+    if (s && typeof s.expires_at === "number" && (s.expires_at - Date.now()) < 120000) {
+      await refreshSession();
+    }
+    const res = await fetch(CHAT_API.url, {
+      method: "POST",
+      headers: chatApiHeaders(),
+      body: JSON.stringify({ mode: "plan" })
+    });
+    let data = null;
+    try { data = await res.json(); } catch(e){}
+    if (!data || !data.ok || typeof data.plan !== "string" || !PLAN_LABELS[data.plan]) { resetPlanSection(); return; }
+    el("plan-name").textContent = PLAN_LABELS[data.plan];
+    if (typeof data.limit === "number") {
+      el("plan-usage").textContent = "Ou itilize " + (typeof data.used === "number" ? data.used : 0) + " sou " + data.limit + " jodi a";
+    } else {
+      el("plan-usage").textContent = "Aksè san limit 🎉";
+    }
+    const fd = data.expires_at ? formatPlanDate(data.expires_at) : "";
+    el("plan-expires").textContent = fd ? ("Valab jiska " + fd) : "";
+    markCurrentPlanCard(data.plan);
+  } catch(e){
+    resetPlanSection();
+  } finally {
+    planInfoLoading = false;
   }
 }
 el("auth-google-btn").addEventListener("click", () => signInWithProvider("google"));
