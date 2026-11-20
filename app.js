@@ -1631,6 +1631,171 @@ el("attach-sheet").addEventListener("click", e => {
   if (e.target === el("attach-sheet")) closeSheet();
 });
 
+/* ---------- PRE M (lokalizasyon) — v14 ----------
+   Pozisyon an rete sou telefòn lan : li pa anrejistre nan istwa a
+   epi li pa voye bay sèvè Babata a. Li sèvi sèlman pou rechèch
+   OpenStreetMap la (gratis, san kle). GPS telefòn lan konekte ak
+   plizyè satelit otomatikman ; app la aktive mòd gwo presizyon an
+   epi l pran plizyè mezi pou l kenbe pi bon an. */
+const PRE_CATS = [
+  { key: "otel", label: "🏨 Otèl", sels: ['["tourism"="hotel"]', '["tourism"="guest_house"]', '["tourism"="hostel"]'] },
+  { key: "restoran", label: "🍽️ Restoran", sels: ['["amenity"="restaurant"]', '["amenity"="fast_food"]', '["amenity"="cafe"]'] },
+  { key: "lopital", label: "🏥 Lopital / Klinik", sels: ['["amenity"="hospital"]', '["amenity"="clinic"]', '["amenity"="doctors"]'] },
+  { key: "famasi", label: "💊 Famasi", sels: ['["amenity"="pharmacy"]'] }
+];
+el("sheet-pre").addEventListener("click", () => { closeSheet(); startNearby(); });
+
+function startNearby(){
+  const chat = currentChat();
+  pushUserMessage(chat, "📍 Pre m");
+  localBotMessage("M ap itilize GPS telefòn ou a (mòd gwo presizyon) pou m chèche sa k pre w. Pozisyon w pa anrejistre ni voye okenn kote — li sèvi sèlman pou rechèch la.\n\nKisa w ap chèche pre w ?");
+  showPreChips();
+}
+function showPreChips(){
+  const row = document.createElement("div");
+  row.className = "msg-row bot";
+  const img = document.createElement("img");
+  img.className = "msg-avatar";
+  img.src = "icon-512.png";
+  img.alt = "Babata";
+  row.appendChild(img);
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  const wrap = document.createElement("div");
+  wrap.className = "pre-chips";
+  PRE_CATS.forEach(cat => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pre-chip";
+    b.textContent = cat.label;
+    b.addEventListener("click", () => {
+      wrap.querySelectorAll("button").forEach(x => { x.disabled = true; });
+      runPreSearch(cat);
+    });
+    wrap.appendChild(b);
+  });
+  bubble.appendChild(wrap);
+  row.appendChild(bubble);
+  messagesEl.appendChild(row);
+  scrollToBottom();
+}
+function getBestPosition(){
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) { reject(new Error("no-geo")); return; }
+    let best = null, done = false, wid = null;
+    function finish(pos, err){
+      if (done) return;
+      done = true;
+      if (wid !== null) { try { navigator.geolocation.clearWatch(wid); } catch(e){} }
+      if (pos) resolve(pos); else reject(err || new Error("timeout"));
+    }
+    wid = navigator.geolocation.watchPosition(
+      function(p){
+        if (!best || p.coords.accuracy < best.coords.accuracy) best = p;
+        if (best && best.coords.accuracy <= 25) finish(best);
+      },
+      function(err){ if (err && err.code === 1) finish(null, err); },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+    );
+    setTimeout(function(){ if (best) finish(best); else finish(null, new Error("timeout")); }, 10000);
+  });
+}
+function haversineM(lat1, lon1, lat2, lon2){
+  const R = 6371000, toRad = function(d){ return d * Math.PI / 180; };
+  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+function fmtDist(m){
+  if (m < 1000) return m + " m";
+  return (m / 1000).toFixed(1).replace(".", ",") + " km";
+}
+function preQuery(cat, lat, lon, radius){
+  let parts = "";
+  cat.sels.forEach(s => {
+    parts += "node" + s + "(around:" + radius + "," + lat + "," + lon + ");";
+    parts += "way" + s + "(around:" + radius + "," + lat + "," + lon + ");";
+  });
+  return "[out:json][timeout:25];(" + parts + ");out center 40;";
+}
+async function overpassSearch(cat, lat, lon, radius){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 25000);
+  try {
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" },
+      body: "data=" + encodeURIComponent(preQuery(cat, lat, lon, radius)),
+      signal: ctrl.signal
+    });
+    if (!res.ok) throw new Error("http " + res.status);
+    const data = await res.json();
+    return Array.isArray(data.elements) ? data.elements : [];
+  } finally { clearTimeout(timer); }
+}
+async function runPreSearch(cat){
+  const typing = addTypingRow("Babata ap chèche " + cat.label + " pre w…");
+  let pos;
+  try {
+    pos = await getBestPosition();
+  } catch(e) {
+    typing.remove();
+    if (e && e.code === 1) {
+      localBotMessage("Telefòn ou a refize pozisyon an. Pou w aktive l : Paramèt → Aplikasyon → navigatè w la (Chrome) → Pèmisyon → Lokalizasyon → Otorize. Apre sa, reeseye 📍 Pre m.");
+    } else if (e && e.message === "no-geo") {
+      localBotMessage("Navigatè sa a pa gen aksè GPS. Eseye l nan Chrome sou telefòn ou a.");
+    } else {
+      localBotMessage("M pa rive jwenn pozisyon w. Soti deyò, kote syèl la ouvè, epi reeseye — GPS la pi presi deyò pase anndan kay.");
+    }
+    return;
+  }
+  const lat = pos.coords.latitude, lon = pos.coords.longitude;
+  const acc = Math.round(pos.coords.accuracy || 0);
+  let els = [];
+  try {
+    els = await overpassSearch(cat, lat, lon, 3000);
+    if (els.length < 3) {
+      const more = await overpassSearch(cat, lat, lon, 10000);
+      if (more.length > els.length) els = more;
+    }
+  } catch(e) {
+    typing.remove();
+    localBotMessage("Rechèch la pa pase — verifye koneksyon entènèt ou a epi reeseye 📍 Pre m.");
+    return;
+  }
+  typing.remove();
+  const seen = {}, places = [];
+  els.forEach(e2 => {
+    const tags = e2.tags || {};
+    const name = tags.name || tags.dispensing || tags.operator || tags.brand;
+    if (!name) return;
+    const plat = (e2.lat != null) ? e2.lat : (e2.center ? e2.center.lat : null);
+    const plon = (e2.lon != null) ? e2.lon : (e2.center ? e2.center.lon : null);
+    if (plat == null || plon == null) return;
+    const key = name + "|" + Number(plat).toFixed(4) + "|" + Number(plon).toFixed(4);
+    if (seen[key]) return;
+    seen[key] = 1;
+    const addr = [tags["addr:street"], tags["addr:city"]].filter(Boolean).join(", ");
+    places.push({ name: name, dist: haversineM(lat, lon, plat, plon), lat: plat, lon: plon, addr: addr, phone: tags.phone || tags["contact:phone"] || "" });
+  });
+  places.sort((a, b) => a.dist - b.dist);
+  const top = places.slice(0, 8);
+  if (!top.length) {
+    localBotMessage(cat.label + " pre w : m pa jwenn okenn sou kat la nan 10 km alantou w (pozisyon w mezire ak ~" + acc + " m presizyon). Done kat Ayiti yo poko konplè tout kote — sa pa vle di pa genyen, se kat la ki poko gen yo.");
+    return;
+  }
+  let txt = cat.label + " pre w (pozisyon w : ~" + acc + " m presizyon) :\n";
+  top.forEach((p, i) => {
+    txt += "\n" + (i + 1) + ". " + p.name + " — " + fmtDist(p.dist);
+    if (p.addr) txt += "\n    " + p.addr;
+    if (p.phone) txt += "\n    📞 " + p.phone;
+    txt += "\n    🗺️ https://www.openstreetmap.org/?mlat=" + p.lat + "&mlon=" + p.lon + "#map=17/" + p.lat + "/" + p.lon;
+  });
+  txt += "\n\nPou yon lòt kategori, tape + epi 📍 Pre m ankò.";
+  localBotMessage(txt);
+}
+
 /* ---------- Fòmilè a ---------- */
 function pushUserMessage(chat, text){
   const isFirstUserMsg = !chat.messages.some(m => m.role === "user");

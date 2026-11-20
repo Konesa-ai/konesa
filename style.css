@@ -520,3 +520,11 @@ button{ font-family:inherit; cursor:pointer; }
   font-size:13px; font-weight:600;
 }
 .plan-note{ margin:6px 0 0; }
+
+/* Pre m (lokalizasyon) — chip kategori yo */
+.pre-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.pre-chip{
+  background:transparent; border:1px solid var(--accent); color:var(--accent);
+  border-radius:999px; padding:8px 14px; font-size:15px; cursor:pointer;
+}
+.pre-chip:disabled{ opacity:.45; cursor:default; }
