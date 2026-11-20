@@ -1747,6 +1747,15 @@ async function overpassSearch(cat, lat, lon, radius){
     return Array.isArray(data.elements) ? data.elements : [];
   } finally { clearTimeout(timer); }
 }
+async function fetchJsonT(url, ms){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms || 10000);
+  try {
+    const res = await fetch(url, { headers: { "Accept": "application/json" }, signal: ctrl.signal });
+    if (!res.ok) throw new Error("http " + res.status);
+    return await res.json();
+  } finally { clearTimeout(timer); }
+}
 async function runPreSearch(cat){
   const typing = addTypingRow("Babata ap chèche " + cat.label + " pre w…");
   let pos;
@@ -1765,7 +1774,14 @@ async function runPreSearch(cat){
   }
   const lat = pos.coords.latitude, lon = pos.coords.longitude;
   const acc = Math.round(pos.coords.accuracy || 0);
-  preLastPos = { lat: lat, lon: lon };
+  preLastPos = { lat: lat, lon: lon, address: "" };
+  try {
+    const geo = await fetchJsonT("https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=" + lat + "&lon=" + lon + "&zoom=18&addressdetails=1", 8000);
+    const a = (geo && geo.address) || {};
+    const bits = [a.road, a.neighbourhood || a.suburb || a.quarter, a.city || a.town || a.village].filter(Boolean);
+    if (bits.length) preLastPos.address = bits.join(", ");
+    else if (geo && geo.display_name) preLastPos.address = String(geo.display_name).split(",").slice(0, 3).join(",").trim();
+  } catch(e){}
   let els = [];
   try {
     els = await overpassSearch(cat, lat, lon, 3000);
@@ -1799,7 +1815,7 @@ async function runPreSearch(cat){
     localBotMessage(cat.label + " pre w : m pa jwenn okenn sou kat la nan 10 km alantou w (pozisyon w mezire ak ~" + acc + " m presizyon). Done kat Ayiti yo poko konplè tout kote — sa pa vle di pa genyen, se kat la ki poko gen yo.");
     return;
   }
-  let txt = cat.label + " pre w (pozisyon w : ~" + acc + " m presizyon) :\n";
+  let txt = (preLastPos.address ? "📍 Ou ye la : " + preLastPos.address + "\n" : "") + cat.label + " pre w (pozisyon w : ~" + acc + " m presizyon) :\n";
   top.forEach((p, i) => {
     txt += "\n" + (i + 1) + ". " + p.name + " — " + fmtDist(p.dist);
     if (p.addr) txt += "\n    " + p.addr;
@@ -1839,11 +1855,13 @@ function showRouteButtons(places){
   scrollToBottom();
 }
 
-/* ---------- KAT + WOUT (v15) — Leaflet + OpenStreetMap + OSRM (FOSSGIS) ----------
+/* ---------- KAT + WOUT (v15, v17) — Leaflet + OpenStreetMap + OSRM (FOSSGIS) ----------
    Kat la desine anndan app la ; liy ble a se wout ki pi rapid la,
    liy gri yo se lòt wout posib yo. Tan an se yon estimasyon (pa gen
-   done trafik an dirèk an Ayiti). */
-let bmap = null, bmapLayers = [], bmapPlace = null, bmapProfile = "car";
+   done trafik an dirèk an Ayiti).
+   V17 : « Ou ye la » egzak (Nominatim) + lis wout yo seleksyonab —
+   tape yon wout nan lis la (oswa liy gri a) pou l vin ble a. */
+let bmap = null, bmapLayers = [], bmapLineLayers = [], bmapPlace = null, bmapProfile = "car", bmapRoutes = [], bmapSel = 0;
 function fmtDur(sec){
   const m = Math.max(1, Math.round(sec / 60));
   if (m < 60) return "~" + m + " min";
@@ -1873,9 +1891,11 @@ async function drawRoute(){
   if (!bmap || !bmapPlace || !preLastPos) return;
   bmapLayers.forEach(l => { try { bmap.removeLayer(l); } catch(e){} });
   bmapLayers = [];
+  bmapLineLayers.forEach(l => { try { bmap.removeLayer(l); } catch(e){} });
+  bmapLineLayers = [];
   const from = [preLastPos.lat, preLastPos.lon], to = [bmapPlace.lat, bmapPlace.lon];
   const me = L.circleMarker(from, { radius: 8, color: "#2f7bff", fillColor: "#2f7bff", fillOpacity: 1 }).addTo(bmap);
-  me.bindPopup("📍 Ou ye la");
+  me.bindPopup("📍 Ou ye la" + (preLastPos.address ? " — " + preLastPos.address : ""));
   const dest = L.circleMarker(to, { radius: 9, color: "#e5484d", fillColor: "#e5484d", fillOpacity: 1 }).addTo(bmap);
   dest.bindPopup(bmapPlace.name);
   bmapLayers.push(me, dest);
@@ -1884,29 +1904,58 @@ async function drawRoute(){
   const host = (bmapProfile === "foot") ? "routed-foot" : "routed-car";
   const url = "https://routing.openstreetmap.de/" + host + "/route/v1/driving/" +
     from[1] + "," + from[0] + ";" + to[1] + "," + to[0] +
-    "?overview=full&geometries=geojson&alternatives=true";
+    "?overview=full&geometries=geojson&alternatives=3";
+  bmapRoutes = [];
+  bmapSel = 0;
   try {
-    const res = await fetch(url, { headers: { "Accept": "application/json" } });
-    const data = await res.json();
+    const data = await fetchJsonT(url, 30000);
     if (!data || data.code !== "Ok" || !data.routes || !data.routes.length) throw new Error("no-route");
-    const routes = data.routes.slice().sort((a, b) => a.duration - b.duration);
-    routes.forEach((r, i) => {
-      const latlngs = r.geometry.coordinates.map(c => [c[1], c[0]]);
-      const line = L.polyline(latlngs, (i === 0)
-        ? { color: "#2f7bff", weight: 6, opacity: 0.95 }
-        : { color: "#9a9aa5", weight: 4, opacity: 0.7 }).addTo(bmap);
-      bmapLayers.push(line);
-      if (i === 0) { try { bmap.fitBounds(line.getBounds().pad(0.12)); } catch(e){} }
-    });
-    const best = routes[0];
-    let info = "🧭 " + bmapPlace.name + " — " + fmtDist(Math.round(best.distance)) + " · " + fmtDur(best.duration) +
-      ((bmapProfile === "foot") ? " apye" : " an machin");
-    if (routes.length > 1) info += "\nLiy ble a se wout ki pi rapid la (" + routes.length + " wout posib).";
-    info += "\nTan an se yon estimasyon — li pa konte blokis.";
-    el("map-info").textContent = info;
+    bmapRoutes = data.routes.slice().sort((a, b) => a.duration - b.duration)
+      .map(r => ({ distance: r.distance, duration: r.duration, latlngs: r.geometry.coordinates.map(c => [c[1], c[0]]) }));
+    renderRoutes();
   } catch(e) {
     el("map-info").textContent = "M pa jwenn wout la — verifye entènèt ou epi reeseye. (Pwen ble a se ou, pwen wouj la se destinasyon an.)";
   }
+}
+function renderRoutes(){
+  if (!bmap || !bmapPlace || !bmapRoutes.length) return;
+  bmapLineLayers.forEach(l => { try { bmap.removeLayer(l); } catch(e){} });
+  bmapLineLayers = [];
+  bmapRoutes.forEach((r, i) => {
+    const sel = (i === bmapSel);
+    const line = L.polyline(r.latlngs, sel
+      ? { color: "#2f7bff", weight: 6, opacity: 0.95 }
+      : { color: "#9a9aa5", weight: 4, opacity: 0.7 }).addTo(bmap);
+    if (!sel) line.on("click", () => selectRoute(i));
+    bmapLineLayers.push(line);
+    if (sel) { try { bmap.fitBounds(line.getBounds().pad(0.12)); } catch(e){} }
+  });
+  const info = el("map-info");
+  info.innerHTML = "";
+  const head = document.createElement("div");
+  head.textContent = "🧭 " + bmapPlace.name + " — " + bmapRoutes.length + (bmapRoutes.length > 1 ? " wout posib" : " wout") +
+    ((bmapProfile === "foot") ? " (apye)" : " (an machin)");
+  info.appendChild(head);
+  const wrap = document.createElement("div");
+  wrap.className = "map-routes";
+  bmapRoutes.forEach((r, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "map-route-btn" + (i === bmapSel ? " active" : "");
+    b.textContent = "Wout " + (i + 1) + (i === 0 ? " · pi rapid" : "") + " — " + fmtDist(Math.round(r.distance)) + " · " + fmtDur(r.duration);
+    b.addEventListener("click", () => selectRoute(i));
+    wrap.appendChild(b);
+  });
+  info.appendChild(wrap);
+  const note = document.createElement("div");
+  note.className = "map-note";
+  note.textContent = "Tan an se yon estimasyon — li pa konte blokis.";
+  info.appendChild(note);
+}
+function selectRoute(i){
+  if (i === bmapSel || !bmapRoutes[i]) return;
+  bmapSel = i;
+  renderRoutes();
 }
 function setMapProfile(p){
   if (bmapProfile === p) return;
