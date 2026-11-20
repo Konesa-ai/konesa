@@ -551,7 +551,15 @@ button{ font-family:inherit; cursor:pointer; }
   border-radius:999px; padding:6px 10px; font-size:13px;
 }
 .map-prof.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+#map-wrap{ position:relative; flex:1; min-height:0; display:flex; }
 #map{ flex:1; min-height:0; background:#aad3df; }
+#map-recenter{
+  position:absolute; right:12px; bottom:14px; z-index:800;
+  width:46px; height:46px; border-radius:50%;
+  background:var(--panel-2); color:var(--accent);
+  border:1px solid var(--border); font-size:22px; line-height:1;
+  box-shadow:0 2px 8px rgba(0,0,0,.45);
+}
 #map-info{
   padding:10px 14px; font-size:14px; white-space:pre-line;
   background:var(--panel); border-top:1px solid var(--border);

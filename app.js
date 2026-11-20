@@ -1781,11 +1781,12 @@ async function locateMe(){
   catch(e) { typing.remove(); localBotMessage(geoErrorMessage(e)); return; }
   const lat = pos.coords.latitude, lon = pos.coords.longitude;
   const acc = Math.round(pos.coords.accuracy || 0);
-  preLastPos = { lat: lat, lon: lon, address: "" };
+  preLastPos = { lat: lat, lon: lon, address: "", acc: acc };
   preLastPos.address = await reverseGeocode(lat, lon);
   typing.remove();
   localBotMessage("📍 Ou ye la : " + (preLastPos.address || "pozisyon GPS la") + " (presizyon ~" + acc + " m).\n\nKisa w ap chèche pre w ? Tape yon kategori anba a, oswa ekri m li — famasi, otèl, restoran, lopital.");
   showPreChips();
+  openLocateMap();
 }
 function detectLocalIntent(text){
   if (!text || text.length > 120) return null;
@@ -1819,7 +1820,7 @@ async function runPreSearch(cat){
   }
   const lat = pos.coords.latitude, lon = pos.coords.longitude;
   const acc = Math.round(pos.coords.accuracy || 0);
-  preLastPos = { lat: lat, lon: lon, address: "" };
+  preLastPos = { lat: lat, lon: lon, address: "", acc: acc };
   preLastPos.address = await reverseGeocode(lat, lon);
   let els = [];
   try {
@@ -1901,6 +1902,7 @@ function showRouteButtons(places){
    V17 : « Ou ye la » egzak (Nominatim) + lis wout yo seleksyonab —
    tape yon wout nan lis la (oswa liy gri a) pou l vin ble a. */
 let bmap = null, bmapLayers = [], bmapLineLayers = [], bmapPlace = null, bmapProfile = "car", bmapRoutes = [], bmapSel = 0;
+let bmapWatchId = null, bmapMe = null, bmapHalo = null, bmapMode = "route";
 function fmtDur(sec){
   const m = Math.max(1, Math.round(sec / 60));
   if (m < 60) return "~" + m + " min";
@@ -1911,20 +1913,92 @@ function setMapProfileUI(){
   el("map-prof-car").classList.toggle("active", bmapProfile === "car");
   el("map-prof-foot").classList.toggle("active", bmapProfile === "foot");
 }
-function openRouteMap(place){
-  bmapPlace = place;
-  el("map-title").textContent = place.name;
-  el("map-overlay").classList.remove("hidden");
-  setMapProfileUI();
-  if (typeof L === "undefined") {
-    el("map-info").textContent = "Kat la pa ka chaje — verifye koneksyon entènèt ou a epi reeseye.";
-    return;
-  }
+function ensureMap(){
+  if (typeof L === "undefined") return false;
   if (!bmap) {
     bmap = L.map("map");
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(bmap);
   }
+  return true;
+}
+function setProfilesVisible(v){
+  const profs = document.querySelector(".map-profiles");
+  if (profs) profs.style.display = v ? "" : "none";
+}
+/* Swivi an dirèk : pandan kat la louvri, pwen ble a swiv pozisyon
+   an (watchPosition, gwo presizyon). Li kanpe lè kat la fèmen —
+   pou l pa manje batri a. Plis swivi a dire, plis chip GPS la
+   estabilize ak satelit yo epi presizyon an amelyore. */
+function startLiveTracking(){
+  stopLiveTracking();
+  if (!navigator.geolocation || typeof navigator.geolocation.watchPosition !== "function") return;
+  bmapWatchId = navigator.geolocation.watchPosition(pos => {
+    if (!pos || !pos.coords) return;
+    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+    const acc = Math.round(pos.coords.accuracy || 0);
+    if (!preLastPos) preLastPos = { lat: lat, lon: lon, address: "", acc: acc };
+    else { preLastPos.lat = lat; preLastPos.lon = lon; if (acc) preLastPos.acc = acc; }
+    if (bmapMe) { try { bmapMe.setLatLng([lat, lon]); } catch(e){} }
+    if (bmapHalo) { try { bmapHalo.setLatLng([lat, lon]); if (acc) bmapHalo.setRadius(acc); } catch(e){} }
+    if (bmapMode === "locate" && bmap) { try { bmap.panTo([lat, lon]); } catch(e){} }
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+}
+function stopLiveTracking(){
+  if (bmapWatchId != null && navigator.geolocation) {
+    try { navigator.geolocation.clearWatch(bmapWatchId); } catch(e){}
+  }
+  bmapWatchId = null;
+}
+function openRouteMap(place){
+  bmapMode = "route";
+  bmapPlace = place;
+  el("map-title").textContent = place.name;
+  el("map-overlay").classList.remove("hidden");
+  setProfilesVisible(true);
+  setMapProfileUI();
+  if (!ensureMap()) {
+    el("map-info").textContent = "Kat la pa ka chaje — verifye koneksyon entènèt ou a epi reeseye.";
+    return;
+  }
+  startLiveTracking();
   setTimeout(() => { try { bmap.invalidateSize(); } catch(e){} drawRoute(); }, 80);
+}
+/* V19 : kat la louvri dirèk sou pozisyon an lè itilizatè a di
+   « lokalize m » — pwen ble + sèk presizyon an, stil Google Maps
+   (modèl itilizatè a te voye a, adapte : mezi miltip + lari egzak). */
+function openLocateMap(){
+  if (!preLastPos) return;
+  bmapMode = "locate";
+  bmapPlace = null;
+  el("map-title").textContent = "📍 Ou ye la";
+  el("map-overlay").classList.remove("hidden");
+  setProfilesVisible(false);
+  if (!ensureMap()) {
+    el("map-info").textContent = "Kat la pa ka chaje — verifye koneksyon entènèt ou a epi reeseye.";
+    return;
+  }
+  setTimeout(() => {
+    try { bmap.invalidateSize(); } catch(e){}
+    bmapLayers.forEach(l => { try { bmap.removeLayer(l); } catch(e){} });
+    bmapLayers = [];
+    bmapLineLayers.forEach(l => { try { bmap.removeLayer(l); } catch(e){} });
+    bmapLineLayers = [];
+    const latlng = [preLastPos.lat, preLastPos.lon];
+    bmapHalo = null;
+    if (preLastPos.acc) {
+      bmapHalo = L.circle(latlng, { radius: preLastPos.acc, color: "#2f7bff", weight: 1, fillColor: "#2f7bff", fillOpacity: 0.15 }).addTo(bmap);
+      bmapLayers.push(bmapHalo);
+    }
+    const me = L.circleMarker(latlng, { radius: 8, color: "#ffffff", weight: 3, fillColor: "#2f7bff", fillOpacity: 1 }).addTo(bmap);
+    me.bindPopup("📍 Ou ye la" + (preLastPos.address ? " — " + preLastPos.address : ""));
+    bmapLayers.push(me);
+    bmapMe = me;
+    try { bmap.setView(latlng, 17); } catch(e){}
+    el("map-info").textContent = "📍 Ou ye la : " + (preLastPos.address || "pozisyon GPS la") +
+      (preLastPos.acc ? " (presizyon ~" + preLastPos.acc + " m)" : "") +
+      "\nFèmen kat la epi chwazi yon kategori (famasi, otèl, restoran, lopital) pou w wè sa k pre w ak wout yo.";
+  }, 80);
+  startLiveTracking();
 }
 async function drawRoute(){
   if (!bmap || !bmapPlace || !preLastPos) return;
@@ -1935,6 +2009,8 @@ async function drawRoute(){
   const from = [preLastPos.lat, preLastPos.lon], to = [bmapPlace.lat, bmapPlace.lon];
   const me = L.circleMarker(from, { radius: 8, color: "#2f7bff", fillColor: "#2f7bff", fillOpacity: 1 }).addTo(bmap);
   me.bindPopup("📍 Ou ye la" + (preLastPos.address ? " — " + preLastPos.address : ""));
+  bmapMe = me;
+  bmapHalo = null;
   const dest = L.circleMarker(to, { radius: 9, color: "#e5484d", fillColor: "#e5484d", fillOpacity: 1 }).addTo(bmap);
   dest.bindPopup(bmapPlace.name);
   bmapLayers.push(me, dest);
@@ -2002,7 +2078,11 @@ function setMapProfile(p){
   setMapProfileUI();
   drawRoute();
 }
-el("map-close").addEventListener("click", () => el("map-overlay").classList.add("hidden"));
+el("map-close").addEventListener("click", () => { stopLiveTracking(); el("map-overlay").classList.add("hidden"); });
+el("map-recenter").addEventListener("click", () => {
+  if (!bmap || !preLastPos) return;
+  try { bmap.setView([preLastPos.lat, preLastPos.lon], (bmapMode === "locate") ? 17 : 16); } catch(e){}
+});
 el("map-prof-car").addEventListener("click", () => setMapProfile("car"));
 el("map-prof-foot").addEventListener("click", () => setMapProfile("foot"));
 
