@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 </head>
 <body>
 <div id="app">
@@ -233,6 +234,21 @@
 
 <div id="toast" class="hidden"></div>
 
+<!-- ===== KAT + WOUT (Pre m, v15) ===== -->
+<div id="map-overlay" class="hidden">
+  <div id="map-head">
+    <button id="map-close" class="round-btn small" type="button" aria-label="Fèmen kat la">✕</button>
+    <div id="map-title">Wout la</div>
+    <div class="map-profiles">
+      <button id="map-prof-car" class="map-prof active" type="button">🚗 Machin</button>
+      <button id="map-prof-foot" class="map-prof" type="button">🚶 Apye</button>
+    </div>
+  </div>
+  <div id="map"></div>
+  <div id="map-info">Ap chèche wout la…</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

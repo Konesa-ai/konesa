@@ -1643,6 +1643,7 @@ const PRE_CATS = [
   { key: "lopital", label: "🏥 Lopital / Klinik", sels: ['["amenity"="hospital"]', '["amenity"="clinic"]', '["amenity"="doctors"]'] },
   { key: "famasi", label: "💊 Famasi", sels: ['["amenity"="pharmacy"]'] }
 ];
+let preLastPos = null;
 el("sheet-pre").addEventListener("click", () => { closeSheet(); startNearby(); });
 
 function startNearby(){
@@ -1752,6 +1753,7 @@ async function runPreSearch(cat){
   }
   const lat = pos.coords.latitude, lon = pos.coords.longitude;
   const acc = Math.round(pos.coords.accuracy || 0);
+  preLastPos = { lat: lat, lon: lon };
   let els = [];
   try {
     els = await overpassSearch(cat, lat, lon, 3000);
@@ -1790,11 +1792,119 @@ async function runPreSearch(cat){
     txt += "\n" + (i + 1) + ". " + p.name + " — " + fmtDist(p.dist);
     if (p.addr) txt += "\n    " + p.addr;
     if (p.phone) txt += "\n    📞 " + p.phone;
-    txt += "\n    🗺️ https://www.openstreetmap.org/?mlat=" + p.lat + "&mlon=" + p.lon + "#map=17/" + p.lat + "/" + p.lon;
   });
-  txt += "\n\nPou yon lòt kategori, tape + epi 📍 Pre m ankò.";
+  txt += "\n\nTape non yon kote anba a pou w wè wout la trase sou kat la. Pou yon lòt kategori, tape + epi 📍 Pre m ankò.";
   localBotMessage(txt);
+  showRouteButtons(top);
 }
+function showRouteButtons(places){
+  const row = document.createElement("div");
+  row.className = "msg-row bot";
+  const img = document.createElement("img");
+  img.className = "msg-avatar";
+  img.src = "icon-512.png";
+  img.alt = "Babata";
+  row.appendChild(img);
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  const label = document.createElement("div");
+  label.className = "pre-route-label";
+  label.textContent = "🧭 Wè wout la sou kat la :";
+  bubble.appendChild(label);
+  const wrap = document.createElement("div");
+  wrap.className = "pre-chips";
+  places.forEach(p => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pre-chip";
+    b.textContent = p.name;
+    b.addEventListener("click", () => openRouteMap(p));
+    wrap.appendChild(b);
+  });
+  bubble.appendChild(wrap);
+  row.appendChild(bubble);
+  messagesEl.appendChild(row);
+  scrollToBottom();
+}
+
+/* ---------- KAT + WOUT (v15) — Leaflet + OpenStreetMap + OSRM (FOSSGIS) ----------
+   Kat la desine anndan app la ; liy ble a se wout ki pi rapid la,
+   liy gri yo se lòt wout posib yo. Tan an se yon estimasyon (pa gen
+   done trafik an dirèk an Ayiti). */
+let bmap = null, bmapLayers = [], bmapPlace = null, bmapProfile = "car";
+function fmtDur(sec){
+  const m = Math.max(1, Math.round(sec / 60));
+  if (m < 60) return "~" + m + " min";
+  const h = Math.floor(m / 60), r = m % 60;
+  return "~" + h + " è" + (r ? " " + r + " min" : "");
+}
+function setMapProfileUI(){
+  el("map-prof-car").classList.toggle("active", bmapProfile === "car");
+  el("map-prof-foot").classList.toggle("active", bmapProfile === "foot");
+}
+function openRouteMap(place){
+  bmapPlace = place;
+  el("map-title").textContent = place.name;
+  el("map-overlay").classList.remove("hidden");
+  setMapProfileUI();
+  if (typeof L === "undefined") {
+    el("map-info").textContent = "Kat la pa ka chaje — verifye koneksyon entènèt ou a epi reeseye.";
+    return;
+  }
+  if (!bmap) {
+    bmap = L.map("map");
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(bmap);
+  }
+  setTimeout(() => { try { bmap.invalidateSize(); } catch(e){} drawRoute(); }, 80);
+}
+async function drawRoute(){
+  if (!bmap || !bmapPlace || !preLastPos) return;
+  bmapLayers.forEach(l => { try { bmap.removeLayer(l); } catch(e){} });
+  bmapLayers = [];
+  const from = [preLastPos.lat, preLastPos.lon], to = [bmapPlace.lat, bmapPlace.lon];
+  const me = L.circleMarker(from, { radius: 8, color: "#2f7bff", fillColor: "#2f7bff", fillOpacity: 1 }).addTo(bmap);
+  me.bindPopup("📍 Ou ye la");
+  const dest = L.circleMarker(to, { radius: 9, color: "#e5484d", fillColor: "#e5484d", fillOpacity: 1 }).addTo(bmap);
+  dest.bindPopup(bmapPlace.name);
+  bmapLayers.push(me, dest);
+  try { bmap.fitBounds(L.latLngBounds([from, to]).pad(0.3)); } catch(e){}
+  el("map-info").textContent = "Ap chèche wout la…";
+  const host = (bmapProfile === "foot") ? "routed-foot" : "routed-car";
+  const url = "https://routing.openstreetmap.de/" + host + "/route/v1/driving/" +
+    from[1] + "," + from[0] + ";" + to[1] + "," + to[0] +
+    "?overview=full&geometries=geojson&alternatives=true";
+  try {
+    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    const data = await res.json();
+    if (!data || data.code !== "Ok" || !data.routes || !data.routes.length) throw new Error("no-route");
+    const routes = data.routes.slice().sort((a, b) => a.duration - b.duration);
+    routes.forEach((r, i) => {
+      const latlngs = r.geometry.coordinates.map(c => [c[1], c[0]]);
+      const line = L.polyline(latlngs, (i === 0)
+        ? { color: "#2f7bff", weight: 6, opacity: 0.95 }
+        : { color: "#9a9aa5", weight: 4, opacity: 0.7 }).addTo(bmap);
+      bmapLayers.push(line);
+      if (i === 0) { try { bmap.fitBounds(line.getBounds().pad(0.12)); } catch(e){} }
+    });
+    const best = routes[0];
+    let info = "🧭 " + bmapPlace.name + " — " + fmtDist(Math.round(best.distance)) + " · " + fmtDur(best.duration) +
+      ((bmapProfile === "foot") ? " apye" : " an machin");
+    if (routes.length > 1) info += "\nLiy ble a se wout ki pi rapid la (" + routes.length + " wout posib).";
+    info += "\nTan an se yon estimasyon — li pa konte blokis.";
+    el("map-info").textContent = info;
+  } catch(e) {
+    el("map-info").textContent = "M pa jwenn wout la — verifye entènèt ou epi reeseye. (Pwen ble a se ou, pwen wouj la se destinasyon an.)";
+  }
+}
+function setMapProfile(p){
+  if (bmapProfile === p) return;
+  bmapProfile = p;
+  setMapProfileUI();
+  drawRoute();
+}
+el("map-close").addEventListener("click", () => el("map-overlay").classList.add("hidden"));
+el("map-prof-car").addEventListener("click", () => setMapProfile("car"));
+el("map-prof-foot").addEventListener("click", () => setMapProfile("foot"));
 
 /* ---------- Fòmilè a ---------- */
 function pushUserMessage(chat, text){
