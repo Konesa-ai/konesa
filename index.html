@@ -95,11 +95,15 @@
         <p id="auth-msg" class="auth-msg"></p>
       </div>
       <div id="account-signed-in" class="hidden">
-        <div class="account-card">
+        <div class="account-card account-card-v22">
+          <img class="account-logo-tile" src="icon-192.png" alt="Hama">
           <div id="account-profile-avatar" class="account-avatar">?</div>
           <div class="account-profile-lines">
             <p id="account-profile-email" class="account-profile-email"></p>
             <p id="account-profile-provider" class="ws-sub"></p>
+            <p class="account-card-plan-line"><span id="account-card-plan-badge" class="account-plan-badge">—</span> <span id="account-card-plan-name">Plan : —</span></p>
+            <p id="account-card-plan-usage" class="ws-sub"></p>
+            <p id="account-card-plan-expires" class="ws-sub"></p>
           </div>
         </div>
         <div id="account-plan" class="plan-section">
@@ -130,7 +134,85 @@
           <p class="ws-sub plan-note">Pou w pran oswa chanje plan, kontakte ekip Hama a sou WhatsApp.</p>
         </div>
         <button id="auth-logout-btn" class="ws-add auth-logout" type="button">Dekonekte</button>
+        <div id="account-danger" class="danger-zone">
+          <h3 class="danger-heading">⚠️ Zòn danje</h3>
+          <p class="ws-sub">Efase kont ou a nèt : kont la, plan an, kontè itilizasyon an ak tout done lokal sou aparèy sa a ap efase. Aksyon sa a irevokab — ou pa ka reprann yo apre.</p>
+          <button id="delete-account-btn" class="danger-btn" type="button">Efase kont mwen</button>
+          <p id="delete-account-msg" class="auth-msg"></p>
+        </div>
       </div>
+      <div class="account-links">
+        <h3 class="plan-heading">Paramèt ak èd</h3>
+        <div class="account-setting-row">
+          <span>Tèm (klè / lannwit)</span>
+          <button id="account-theme-btn" class="ws-btn" type="button"><span id="account-theme-value">Lannwit</span> — Chanje</button>
+        </div>
+        <button id="share-hama-btn" class="account-nav-btn" type="button">🔗 Pataje Hama</button>
+        <button class="account-nav-btn" type="button" data-goto="konfidansyalite">🔒 Konfidansyalite</button>
+        <button class="account-nav-btn" type="button" data-goto="tem">📄 Tèm itilizasyon</button>
+        <button class="account-nav-btn" type="button" data-goto="asistans">💬 Asistans</button>
+        <p class="ws-sub account-version">Vèsyon 22</p>
+        <p class="ws-sub account-creator">Kreye pa Hantz-Cadet — Ouanaminthe, Ayiti</p>
+      </div>
+    </section>
+    <section id="view-konfidansyalite" class="view panel-view ws-view">
+      <button class="view-back-btn ws-btn" type="button" data-goto="kont">← Retounen nan Kont</button>
+      <h2>Konfidansyalite</h2>
+      <div class="legal-text">
+        <p>Paj sa a eksplike, an kreyòl klè, ki done Hama itilize, pouki sa, epi ki dwa ou genyen sou yo. Nou pa vann done ou yo, epi nou pa pataje yo pou piblisite.</p>
+        <h3>1. Kont ak imèl ou</h3>
+        <p>Si w kreye yon kont, nou itilize sistèm Supabase Auth pou jere koneksyon an. Adrès imèl ou a (ak metòd koneksyon an, pa egzanp Google) sèvi sèlman pou konekte w, rekonèt kont ou a, epi asosye plan ou a ak kont ou a. Nou pa voye w piblisite sou imèl sa a.</p>
+        <h3>2. Mesaj chat ou yo</h3>
+        <p>Lè w voye yon mesaj, fonksyon sèvè Hama a trete l epi l voye l bay founisè entèlijans atifisyèl yo (Gemini ak OpenRouter) pou yo ka jenere repons lan pou ou. Mesaj yo pase nan sèvè yo pou tretman sa a sèlman. Nou pa vann mesaj ou yo, epi nou pa pataje yo pou piblisite.</p>
+        <h3>3. Kontè itilizasyon</h3>
+        <p>Pou plan yo ka mache jis, nou konte konbyen demann ou fè chak jou (kontè itilizasyon). Kontè sa a sèvi sèlman pou aplike kota plan ou a (pa egzanp 5, 30 oswa 150 demann pa jou). Li pa sèvi pou swiv ou pou piblisite.</p>
+        <h3>4. Pozisyon GPS — « Pre m »</h3>
+        <p>Fonksyon « Pre m » la itilize pozisyon GPS telefòn ou a sèlman sou aparèy ou a, nan moman w mande l la, pou l montre w kote ki pre w yo (otèl, restoran, lopital, famasi) epi trase wout la. Pozisyon ou a pa anrejistre, epi li pa voye bay sèvè Hama a.</p>
+        <h3>5. Done lokal sou aparèy ou a</h3>
+        <p>Konvèsasyon ou yo, chwa tèm ou a (klè / lannwit), memwa app a sou ou, ide, objektif ak bibliyotèk ou yo rete sou aparèy ou a menm (nan depo lokal navigatè a). Si w efase done navigatè a oswa w itilize bouton efasman yo nan app a, done lokal sa yo efase.</p>
+        <h3>6. Dwa ou yo</h3>
+        <p>Ou ka mande aksè a done nou genyen sou ou a, oswa mande pou n efase yo. Fason ki pi dirèk la : itilize bouton « Efase kont mwen » ki nan paj Kont la — li efase kont ou a, plan ou a, kontè itilizasyon ou an ak tout done lokal sou aparèy la. Ou ka ekri nou tou nan seksyon Asistans lan.</p>
+        <p class="legal-updated">Dènye mizajou : 24 novanm 2026</p>
+      </div>
+    </section>
+    <section id="view-tem" class="view panel-view ws-view">
+      <button class="view-back-btn ws-btn" type="button" data-goto="kont">← Retounen nan Kont</button>
+      <h2>Tèm itilizasyon</h2>
+      <div class="legal-text">
+        <p>Lè w itilize Hama, ou dakò ak tèm sa yo. Si w pa dakò, tanpri pa itilize sèvis la.</p>
+        <h3>1. Sèvis la</h3>
+        <p>Hama se yon asistan entèlijans atifisyèl an kreyòl. Repons li yo jenere otomatikman : yo ka gen erè, yo ka pa konplè oswa yo ka pa ajou. Verifye tout enfòmasyon enpòtan (sante, lajan, desizyon legal oswa lòt desizyon serye) ak yon sous oswa yon pwofesyonèl ou fè konfyans anvan w aji sou yo.</p>
+        <h3>2. Itilizasyon akseptab</h3>
+        <p>Ou dakò pou w pa : itilize Hama pou kontni oswa aktivite ilegal ; eseye kontourne kota yo, plan yo oswa limit sèvis la ; deranje, atake oswa eseye kase sekirite sèvis la ; oswa itilize kont yon lòt moun san pèmisyon l.</p>
+        <h3>3. Plan ak peman</h3>
+        <p>Plan yo se : <strong>Gratis</strong> — 5 demann pa jou ; <strong>Debaz</strong> — 30 demann pa jou, 500 HTG / 5 $ pa mwa ; <strong>Pro</strong> — 150 demann pa jou, 1 500 HTG / 12 $ pa mwa ; <strong>Promax</strong> — san limit, 3 000 HTG / 25 $ pa mwa. Pou w aktive oswa chanje yon plan peye, kontakte ekip Hama a — aktivasyon an fèt apre kontak ak konfimasyon peman an.</p>
+        <h3>4. Disponiblite ak chanjman</h3>
+        <p>Nou fè efò pou sèvis la rete disponib, men nou pa garanti l ap mache san entèripsyon. Sèvis la ka evolye : fonksyon, plan ak pri yo ka chanje ak tan. N ap eseye avèti w lè gen gwo chanjman.</p>
+        <h3>5. Responsablite</h3>
+        <p>Ou responsab desizyon ou pran apati repons Hama yo. Nan limit lalwa pèmèt, ekip Hama a pa responsab domaj ki soti nan itilizasyon oswa nan enkapasite pou w itilize sèvis la, ni nan erè ki ta genyen nan repons yo.</p>
+        <h3>6. Kontak</h3>
+        <p>Pou nenpòt kesyon sou tèm sa yo, ekri nou nan : hantzcadete@gmail.com — oswa itilize paj Asistans lan nan app a.</p>
+        <p class="legal-updated">Dènye mizajou : 24 novanm 2026</p>
+      </div>
+    </section>
+    <section id="view-asistans" class="view panel-view ws-view">
+      <button class="view-back-btn ws-btn" type="button" data-goto="kont">← Retounen nan Kont</button>
+      <h2>Asistans</h2>
+      <p class="ws-sub">Ekri nou — bouton Voye a ap louvri app imèl ou a ak mesaj la deja ranpli.</p>
+      <div class="ws-form">
+        <label class="ws-label" for="support-subject">Sijè</label>
+        <select id="support-subject">
+          <option value="Pwoblèm teknik">Pwoblèm teknik</option>
+          <option value="Kesyon sou plan">Kesyon sou plan</option>
+          <option value="Peman">Peman</option>
+          <option value="Lòt">Lòt</option>
+        </select>
+        <label class="ws-label" for="support-message">Mesaj ou a</label>
+        <textarea id="support-message" rows="5" placeholder="Eksplike pwoblèm ou a oswa kesyon ou a…"></textarea>
+        <button id="support-send-btn" class="ws-add" type="button">Voye</button>
+        <p id="support-msg" class="auth-msg"></p>
+      </div>
+      <p class="ws-sub">Ou ka ekri nou dirèkteman tou nan : <strong>hantzcadete@gmail.com</strong></p>
     </section>
   </main>
 
@@ -238,7 +320,7 @@
       <p id="memwa-status" class="version"></p>
     </div>
     <button id="wipe-btn" class="danger" type="button">Efase tout istwa a</button>
-    <p class="version">Vèsyon 21</p>
+    <p class="version">Vèsyon 22</p>
     <button id="settings-close" class="ghost" type="button">Fèmen</button>
   </div>
 </div>
@@ -247,6 +329,37 @@
 <div id="library-overlay" class="hidden">
   <button id="library-overlay-close" class="round-btn small" type="button" aria-label="Fèmen imaj la">✕</button>
   <img id="library-overlay-img" alt="Imaj bibliyotèk la an gwo">
+</div>
+
+<!-- ===== MODÈL EFASMAN KONT (2 etap) ===== -->
+<div id="delete-modal" class="modal hidden">
+  <div class="modal-card">
+    <div id="delete-step-1">
+      <h3>Efase kont ou a ?</h3>
+      <p class="ws-sub">Si w kontinye, men sa k ap efase nèt :</p>
+      <ul class="delete-list">
+        <li>Kont ou a ak koneksyon ou an</li>
+        <li>Plan ou a</li>
+        <li>Kontè itilizasyon ou an</li>
+        <li>Tout done lokal sou aparèy sa a (konvèsasyon, ide, objektif, bibliyotèk, memwa, tèm)</li>
+      </ul>
+      <p class="ws-sub"><strong>Aksyon sa a irevokab.</strong> Ou pa ka reprann kont la ni done yo apre efasman an.</p>
+      <button id="delete-next-btn" class="danger" type="button">M konprann — kontinye</button>
+      <button id="delete-cancel-1" class="ghost" type="button">Anile</button>
+    </div>
+    <div id="delete-step-2" class="hidden">
+      <h3>Konfimasyon final</h3>
+      <p class="ws-sub">Èske w sèten ou vle efase kont ou a nèt ? Pa gen okenn fason pou w defè sa a apre.</p>
+      <button id="delete-confirm-btn" class="danger" type="button">Wi, efase kont mwen nèt</button>
+      <button id="delete-cancel-2" class="ghost" type="button">Non, kenbe kont mwen</button>
+      <p id="delete-msg" class="auth-msg"></p>
+    </div>
+    <div id="delete-step-done" class="hidden">
+      <h3>Kont ou efase</h3>
+      <p class="ws-sub">Kont ou a efase. Tout done lokal sou aparèy sa a efase tou. Mèsi paske w te itilize Hama.</p>
+      <button id="delete-done-btn" class="ghost" type="button">Retounen nan chat la</button>
+    </div>
+  </div>
 </div>
 
 <div id="toast" class="hidden"></div>

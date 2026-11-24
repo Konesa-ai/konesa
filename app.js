@@ -294,6 +294,7 @@ function setView(name){
   if (name === "objektif") renderGoals();
   if (name === "bibliyotek") renderLibrary();
   if (name === "kont") renderAccount();
+  if (name === "asistans") renderSupportInfo();
 }
 
 /* ---------- Drawer ---------- */
@@ -2832,7 +2833,35 @@ function markCurrentPlanCard(plan){
     if (badge) badge.classList.toggle("hidden", !mine);
   });
 }
+let lastPlanData = null;
+function syncAccountCardPlan(){
+  const badge = el("account-card-plan-badge");
+  const nameEl = el("account-card-plan-name");
+  const usageEl = el("account-card-plan-usage");
+  const expEl = el("account-card-plan-expires");
+  if (!lastPlanData) {
+    if (badge) badge.textContent = "—";
+    if (nameEl) nameEl.textContent = "Plan : —";
+    if (usageEl) usageEl.textContent = "";
+    if (expEl) expEl.textContent = "";
+    return;
+  }
+  const label = PLAN_LABELS[lastPlanData.plan] || lastPlanData.plan;
+  if (badge) badge.textContent = label;
+  if (nameEl) nameEl.textContent = label;
+  if (usageEl) {
+    usageEl.textContent = (typeof lastPlanData.limit === "number")
+      ? ("Itilizasyon jodi a : " + (typeof lastPlanData.used === "number" ? lastPlanData.used : 0) + " / " + lastPlanData.limit)
+      : "Itilizasyon jodi a : san limit";
+  }
+  if (expEl) {
+    const fd = lastPlanData.expires_at ? formatPlanDate(lastPlanData.expires_at) : "";
+    expEl.textContent = fd ? ("Ekspire : " + fd) : "";
+  }
+}
 function resetPlanSection(){
+  lastPlanData = null;
+  syncAccountCardPlan();
   const n = el("plan-name"); if (n) n.textContent = "Plan : —";
   const u = el("plan-usage"); if (u) u.textContent = "";
   const x = el("plan-expires"); if (x) x.textContent = "";
@@ -2857,6 +2886,8 @@ async function loadPlanInfo(){
     let data = null;
     try { data = await res.json(); } catch(e){}
     if (!data || !data.ok || typeof data.plan !== "string" || !PLAN_LABELS[data.plan]) { resetPlanSection(); return; }
+    lastPlanData = data;
+    syncAccountCardPlan();
     el("plan-name").textContent = PLAN_LABELS[data.plan];
     const pb = el("plan-badge"); if (pb) { pb.textContent = PLAN_LABELS[data.plan]; pb.classList.remove("guest"); }
     if (typeof data.limit === "number") {
@@ -2904,7 +2935,7 @@ async function initAuth(){
    senkronize ikòn bouton an epi n jere chanjman manyèl la. */
 const THEME_KEY = "babata_pwa_theme";
 function currentTheme(){ return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark"; }
-function syncThemeBtn(){ const b = el("theme-btn"); if (b) b.textContent = currentTheme() === "light" ? "🌙" : "☀️"; }
+function syncThemeBtn(){ const b = el("theme-btn"); if (b) b.textContent = currentTheme() === "light" ? "🌙" : "☀️"; const v = el("account-theme-value"); if (v) v.textContent = currentTheme() === "light" ? "Klè" : "Lannwit"; }
 function applyTheme(t){
   document.documentElement.setAttribute("data-theme", t);
   try { localStorage.setItem(THEME_KEY, t); } catch(e){}
@@ -2912,6 +2943,96 @@ function applyTheme(t){
 }
 el("theme-btn").addEventListener("click", () => applyTheme(currentTheme() === "light" ? "dark" : "light"));
 syncThemeBtn();
+
+/* ================================================================
+   V22 — KONFIDANSYALITE / TÈM / ASISTANS / PATAJE / EFASMAN KONT
+   ================================================================ */
+const SUPPORT_EMAIL = "hantzcadete@gmail.com";
+const HAMA_SHARE_URL = "https://babata-ai.github.io/babata/";
+const ALL_STORAGE_KEYS = ["babata_pwa_chats_v1","babata_pwa_ideas_v1","babata_pwa_goals_v1","babata_pwa_library_v1","babata_pwa_active_v1","babata_pwa_session_v1","babata_pwa_theme","babata_memwa_v1","babata-central-usage"];
+function renderSupportInfo(){ /* Pa gen backend : fòmilè a pare, voye a fèt pa mailto. */ }
+function currentPlanLabel(){
+  if (lastPlanData && lastPlanData.plan && PLAN_LABELS[lastPlanData.plan]) return PLAN_LABELS[lastPlanData.plan];
+  const pb = el("plan-badge"); return pb ? (pb.textContent || "") : "";
+}
+document.querySelectorAll("[data-goto]").forEach(function(btn){
+  btn.addEventListener("click", function(){ setView(btn.getAttribute("data-goto")); });
+});
+(function(){
+  const themeBtn = el("account-theme-btn");
+  if (themeBtn) themeBtn.addEventListener("click", function(){ applyTheme(currentTheme() === "light" ? "dark" : "light"); });
+  const shareBtn = el("share-hama-btn");
+  if (shareBtn) shareBtn.addEventListener("click", async function(){
+    const payload = { title: "Hama", text: "Hama — ajan IA pèsonèl ou an kreyòl", url: HAMA_SHARE_URL };
+    if (navigator.share) { try { await navigator.share(payload); return; } catch(e){ if (e && e.name === "AbortError") return; } }
+    try { await navigator.clipboard.writeText(HAMA_SHARE_URL); toast("Lyen Hama a kopye ✔"); }
+    catch(e){ toast("Lyen an : " + HAMA_SHARE_URL); }
+  });
+  const sendBtn = el("support-send-btn");
+  if (sendBtn) sendBtn.addEventListener("click", function(){
+    const subjectSel = el("support-subject");
+    const msgEl = el("support-message");
+    const infoEl = el("support-msg");
+    const subject = subjectSel ? subjectSel.value : "Lòt";
+    const message = msgEl ? (msgEl.value || "").trim() : "";
+    if (!message) { if (infoEl) { infoEl.textContent = "Ekri mesaj ou a anvan w voye l."; infoEl.classList.add("error"); } return; }
+    let body = message;
+    const user = sessionUser();
+    if (user) {
+      body += "\n\n---\nImèl kont mwen : " + (user.email || "") + "\nPlan mwen : " + (currentPlanLabel() || "—");
+    }
+    const mailto = "mailto:" + SUPPORT_EMAIL + "?subject=" + encodeURIComponent("[Hama Asistans] " + subject) + "&body=" + encodeURIComponent(body);
+    window.location.href = mailto;
+    if (infoEl) { infoEl.textContent = "App imèl ou a ap louvri ak mesaj la pare."; infoEl.classList.remove("error"); }
+  });
+  /* --- Efase kont : modèl 2 etap --- */
+  const modal = el("delete-modal");
+  function showDeleteStep(n){
+    const s1 = el("delete-step-1"), s2 = el("delete-step-2"), sd = el("delete-step-done");
+    if (s1) s1.classList.toggle("hidden", n !== 1);
+    if (s2) s2.classList.toggle("hidden", n !== 2);
+    if (sd) sd.classList.toggle("hidden", n !== 3);
+    const m = el("delete-msg"); if (m) { m.textContent = ""; m.classList.remove("error"); }
+  }
+  function openDeleteModal(){ if (modal) { showDeleteStep(1); modal.classList.remove("hidden"); } }
+  function closeDeleteModal(){ if (modal) modal.classList.add("hidden"); }
+  const delBtn = el("delete-account-btn");
+  if (delBtn) delBtn.addEventListener("click", openDeleteModal);
+  const c1 = el("delete-cancel-1"); if (c1) c1.addEventListener("click", closeDeleteModal);
+  const c2 = el("delete-cancel-2"); if (c2) c2.addEventListener("click", closeDeleteModal);
+  const nx = el("delete-next-btn"); if (nx) nx.addEventListener("click", function(){ showDeleteStep(2); });
+  if (modal) modal.addEventListener("click", function(e){ if (e.target === modal) closeDeleteModal(); });
+  const doneBtn = el("delete-done-btn");
+  if (doneBtn) doneBtn.addEventListener("click", function(){ closeDeleteModal(); setView("chat"); });
+  const confirmBtn = el("delete-confirm-btn");
+  if (confirmBtn) confirmBtn.addEventListener("click", async function(){
+    const msgEl = el("delete-msg");
+    confirmBtn.disabled = true;
+    if (msgEl) { msgEl.textContent = "Efasman an ap fèt…"; msgEl.classList.remove("error"); }
+    try {
+      const s = loadSession();
+      if (s && typeof s.expires_at === "number" && (s.expires_at - Date.now()) < 120000) { await refreshSession(); }
+      const res = await fetch(CHAT_API.url, { method: "POST", headers: chatApiHeaders(), body: JSON.stringify({ mode: "delete_account" }) });
+      let data = null; try { data = await res.json(); } catch(e){}
+      if (!res.ok || !data || !data.ok) throw new Error("delete_failed");
+      /* Siksè sèlman : netwaye sesyon + TOUT kle lokal app la. */
+      ALL_STORAGE_KEYS.forEach(function(k){ try { localStorage.removeItem(k); } catch(e){} });
+      try { localStorage.removeItem(SESSION_KEY); } catch(e){}
+      chats = [newChatObject()]; currentId = chats[0].id;
+      lastPlanData = null;
+      renderAccountBlock();
+      const out = el("account-signed-out"), inn = el("account-signed-in");
+      if (out) out.classList.remove("hidden");
+      if (inn) inn.classList.add("hidden");
+      const pb = el("plan-badge"); if (pb) { pb.textContent = "Envite"; pb.classList.add("guest"); }
+      try { renderMessages(); renderChatLists(); } catch(e){}
+      showDeleteStep(3);
+      toast("Kont ou efase.");
+    } catch(e){
+      if (msgEl) { msgEl.textContent = "Efasman an pa t reyisi. Verifye koneksyon ou epi reeseye — anyen pa efase."; msgEl.classList.add("error"); }
+    } finally { confirmBtn.disabled = false; }
+  });
+})();
 
 /* ---------- Demaraj ---------- */
 loadChats();

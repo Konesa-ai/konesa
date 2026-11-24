@@ -795,3 +795,26 @@ button:active{ transform:scale(.97); }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
 }
+
+/* ================================================================
+   V22 — KAT KONT / LYEN / ZÒN DANJE / PAJ LEGAL / ASISTANS
+   ================================================================ */
+.account-logo-tile{ width:56px; height:56px; flex:0 0 auto; border-radius:16px; object-fit:cover; border:1px solid var(--border); box-shadow:var(--sh-1); }
+.account-card-v22{ align-items:flex-start; }
+.account-card-plan-line{ margin:6px 0 0; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.account-plan-badge{ display:inline-block; padding:3px 10px; background:var(--accent-grad); color:#fff; border-radius:var(--r-pill); font-size:12.5px; font-weight:800; }
+.account-links{ margin-top:22px; display:flex; flex-direction:column; gap:var(--sp-2); }
+.account-nav-btn{ width:100%; text-align:left; background:var(--panel-2); border:1px solid var(--border-soft); border-radius:var(--r-sm); color:var(--text); padding:12px; font-size:var(--fs-base); font-weight:600; box-shadow:var(--sh-1); cursor:pointer; }
+.account-setting-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--panel-2); border:1px solid var(--border-soft); border-radius:var(--r-sm); padding:10px 12px; }
+.account-version{ margin-top:10px; font-weight:700; }
+.danger-zone{ margin-top:22px; border:1px solid var(--danger); border-radius:var(--r-md); padding:var(--sp-4); background:var(--panel-2); }
+.danger-heading{ margin:0 0 6px; color:var(--danger); font-size:var(--fs-md); }
+.danger-btn{ width:100%; background:var(--danger); color:#fff; border:none; padding:12px; border-radius:var(--r-sm); font-size:var(--fs-base); font-weight:700; cursor:pointer; }
+.view-back-btn{ margin-bottom:14px; }
+.legal-text h3{ margin:18px 0 6px; font-size:var(--fs-md); }
+.legal-text p{ color:var(--text); font-size:15px; line-height:1.6; margin:0 0 8px; }
+.legal-updated{ color:var(--muted) !important; margin-top:20px !important; }
+.ws-label{ font-size:14px; font-weight:600; color:var(--muted); }
+.ws-form select{ width:100%; background:var(--panel-2); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm); padding:11px 12px; font-size:var(--fs-base); font-family:inherit; outline:none; }
+.delete-list{ margin:6px 0 10px; padding-left:20px; line-height:1.6; font-size:14.5px; }
+.modal-card .danger{ width:100%; margin-top:10px; }
