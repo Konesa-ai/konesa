@@ -818,3 +818,14 @@ button:active{ transform:scale(.97); }
 .ws-form select{ width:100%; background:var(--panel-2); color:var(--text); border:1px solid var(--border); border-radius:var(--r-sm); padding:11px 12px; font-size:var(--fs-base); font-family:inherit; outline:none; }
 .delete-list{ margin:6px 0 10px; padding-left:20px; line-height:1.6; font-size:14.5px; }
 .modal-card .danger{ width:100%; margin-top:10px; }
+
+/* v23 — modèl prompts, envitasyon, acha, lang */
+.model-list{display:flex;flex-direction:column;gap:10px;margin:14px 0 18px}
+.model-card{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--panel-2);border:1px solid var(--border-soft);border-radius:var(--r-sm);color:var(--text);padding:12px;font-size:var(--fs-base);box-shadow:var(--sh-1);cursor:pointer;width:100%}
+.model-card-title{font-weight:800}
+.model-card-text{color:var(--muted);font-size:14.5px;line-height:1.45}
+.referral-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}
+.lang-btns{display:inline-flex;gap:6px;flex-wrap:wrap}
+.lang-btn.active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(47,123,255,.16);font-weight:800}
+.plan-buy-btn{margin-top:10px}
+.buy-opt{width:100%;margin-top:10px}
