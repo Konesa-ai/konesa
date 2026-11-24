@@ -3370,7 +3370,7 @@ document.querySelectorAll("[data-goto]").forEach(function(btn){
    V23 — MODÈL PROMPTS / ENVITASYON / ACHA PLAN / LANG
    ================================================================ */
 const GETLY_STORE_URL = "https://www.getly.store/store/solo-business-fr-mvt2mvre";
-const SUPPORT_WHATSAPP = ""; /* VID volontèman : nimewo a poko konfime */
+const SUPPORT_WHATSAPP = "50944189359"; /* Nimewo WhatsApp biznis la — itilizatè a konfime l 2026-11-24 pou acha plan yo */
 
 /* --- Modèl prompts : tape yon kat → tèks la antre nan bwat mesaj la --- */
 document.querySelectorAll(".model-card").forEach(function(card){

@@ -1,5 +1,5 @@
 // Hama PWA — service worker (enstalasyon + aksè offline pou kokiy app la)
-var CACHE = "hama-pwa-v23";
+var CACHE = "hama-pwa-v24";
 var CORE = ["./", "./index.html", "./style.css", "./app.js", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", function(e){
   e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(CORE); }).then(function(){ return self.skipWaiting(); }));
