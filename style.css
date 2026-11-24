@@ -1,5 +1,5 @@
 /* ================================================================
-   KONESA PWA v25 — SISTÈM DIZAYN
+   KONESA PWA v26 — SISTÈM DIZAYN
    Mak la : linivè Konesa a — fon espas pwofon, ble elektrik, syan
    ki klere (je/sikwi logo a). Tèm lannwit (defò) + tèm klè, chwa a
    swiv sistèm telefòn lan, bouton manyèl la ka pase sou li.
@@ -255,7 +255,7 @@ button:active{ transform:scale(.97); }
 
 /* Bouton anba mesaj IA yo (kopye / sove / koute / telechaje) */
 .copy-row{ flex:0 0 100%; padding-left:36px; margin-top:2px; display:flex; flex-wrap:wrap; }
-.copy-prompt-btn,.save-msg-btn,.speak-btn,.dl-btn{
+.copy-prompt-btn,.save-msg-btn,.speak-btn,.dl-btn,.feedback-btn,.copy-msg-btn{
   background:var(--panel); border:1px solid var(--border); border-radius:var(--r-pill);
   color:var(--muted); font-size:13px; padding:6px 12px; text-decoration:none;
   transition:color .2s var(--ease-soft),border-color .2s var(--ease-soft);
@@ -265,6 +265,20 @@ button:active{ transform:scale(.97); }
 .dl-btn{ display:inline-block; }
 .copy-prompt-btn.copied,.save-msg-btn.copied{ color:var(--green); border-color:var(--status-border); }
 .speak-btn.speaking{ color:var(--accent); border-color:var(--accent); }
+/* Bouton fidbak 👍 / 👎 (v26) : apre yon chwa, bouton yo dezaktive
+   epi sa w te chwazi a rete make (anfonse). */
+.feedback-btn{ margin-left:8px; }
+.feedback-btn:disabled{ opacity:.5; }
+.feedback-btn.chosen:disabled{ opacity:1; color:var(--green); border-color:var(--status-border); }
+/* Bouton « 📋 Kopye » sou chak mesaj (v26) : menm stil diskè a ;
+   eta « Kopye ✓ » a pran koulè vè a pandan 2 segonn. */
+.copy-msg-btn{ margin-left:8px; }
+.copy-msg-btn.copied{ color:var(--green); border-color:var(--status-border); }
+/* Mesaj itilizatè yo : ranje bouton an aliyen adwat, san espas
+   avatar la (36px la se pou mesaj IA yo). */
+.msg-row.user{ flex-wrap:wrap; }
+.msg-row.user .copy-row{ padding-left:0; justify-content:flex-end; }
+.msg-row.user .copy-msg-btn{ margin-left:0; }
 
 /* Mòd Kreye Imaj : imaj jenere a + pwompt ki te sèvi a */
 .gen-img{ display:block; width:100%; border-radius:var(--r-md); box-shadow:var(--sh-1); }

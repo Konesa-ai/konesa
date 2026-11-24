@@ -7,6 +7,10 @@
    bò sèvè a, kat 3 plan peye yo ak badj plan aktyèl la) epi mesaj
    limit sèvè zanmitay la (error "limit_kont" nan koule jenerasyon
    yo — chat, analiz, imaj).
+   v26 : bouton fidbak (👍 / 👎) sou chak repons asistan an (wout
+   sèvè { mode:"feedback" }, tab babata_feedback), bouton
+   « 📋 Kopye » sou chak mesaj (asistan + itilizatè), epi vi
+   « 📖 Gid itilizatè » an kreyòl nan seksyon Kont la.
    v23 : bibliyotèk modèl prompts pare (vi « model »), envitasyon
    zanmi (kòd referral + reklamasyon + bonus nan plan an), acha plan
    (bouton « Achte » + modèl Getly / WhatsApp-MonCash / « M peye
@@ -680,7 +684,7 @@ function renderMessages(){
     row.querySelector(".bubble").classList.add("welcome");
     addEmptyStateHero();
   } else {
-    chat.messages.forEach(m => {
+    chat.messages.forEach((m, idx) => {
       const isImageMsg = m.role === "bot" && m.image && m.image.data;
       const row = addMessageRow(m.role, isImageMsg ? "" : m.text);
       if (m.role === "bot") {
@@ -696,7 +700,12 @@ function renderMessages(){
           if (m.prompt) attachCopyButton(row, m.text);
           attachSaveButton(row, m.text);
           attachSpeakButton(row, m.text);
+          const prev = idx > 0 ? chat.messages[idx - 1] : null;
+          attachFeedbackButtons(row, (prev && prev.role === "user") ? (prev.text || "") : "", m.text);
+          attachCopyMsgButton(row, m.text);
         }
+      } else {
+        attachCopyMsgButton(row, m.text);
       }
     });
   }
@@ -1719,6 +1728,124 @@ function attachSpeakButton(row, text){
   wrap.appendChild(btn);
 }
 
+/* ---------- Bouton fidbak (👍 / 👎) — v26 ----------
+   Anba chak repons asistan an, nan menm ranje ak bouton
+   « Sove » / « Koute » yo : itilizatè a make si repons lan te
+   itil li (👍) oswa non (👎). Eta a anrejistre lokalman (kle
+   « babata_pwa_feedback_v1 », anprent = hash prompt + repons)
+   pou bouton yo rete make apre recharj paj la, epi fidbak la
+   voye sou sèvè a (wout { mode:"feedback" }, tab
+   babata_feedback) — fail-open : yon echèk rezo pa janm
+   deranje itilizatè a, epi chat la pa janm afekte. */
+const FEEDBACK_KEY = "babata_pwa_feedback_v1";
+function loadFeedbackMap(){
+  try { const m = JSON.parse(localStorage.getItem(FEEDBACK_KEY) || "{}"); return (m && typeof m === "object") ? m : {}; }
+  catch(e){ return {}; }
+}
+function saveFeedbackMap(m){ try { localStorage.setItem(FEEDBACK_KEY, JSON.stringify(m)); } catch(e){} }
+function feedbackFingerprint(promptText, responseText){
+  const s = String(promptText || "") + "\n@@@\n" + String(responseText || "");
+  let h1 = 5381, h2 = 52711;
+  for (let i = 0; i < s.length; i++){
+    const c = s.charCodeAt(i);
+    h1 = ((h1 * 33) ^ c) >>> 0;
+    h2 = ((h2 * 31) + c) >>> 0;
+  }
+  return h1.toString(36) + "." + h2.toString(36) + "." + s.length;
+}
+function sendFeedbackToServer(rating, promptText, responseText){
+  try {
+    fetch(CHAT_API.url, {
+      method: "POST",
+      headers: chatApiHeaders(),
+      body: JSON.stringify({
+        mode: "feedback",
+        rating: rating,
+        prompt_excerpt: String(promptText || "").slice(0, 400),
+        response_excerpt: String(responseText || "").slice(0, 600),
+        lang: currentLang()
+      })
+    }).catch(function(){});
+  } catch(e){}
+}
+function attachFeedbackButtons(row, promptText, responseText){
+  if (!row || !responseText) return;
+  if (row.querySelector(".feedback-btn")) return;
+  const saveBtn = row.querySelector(".save-msg-btn");
+  let wrap = saveBtn ? saveBtn.parentElement : null;
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.className = "copy-row";
+    row.appendChild(wrap);
+  }
+  const fp = feedbackFingerprint(promptText, responseText);
+  const upBtn = document.createElement("button");
+  upBtn.type = "button";
+  upBtn.className = "feedback-btn";
+  upBtn.textContent = "👍";
+  upBtn.setAttribute("aria-label", "Repons sa a te itil mwen");
+  const downBtn = document.createElement("button");
+  downBtn.type = "button";
+  downBtn.className = "feedback-btn";
+  downBtn.textContent = "👎";
+  downBtn.setAttribute("aria-label", "Repons sa a pa t itil mwen");
+  const paint = function(){
+    const cur = loadFeedbackMap()[fp];
+    upBtn.classList.toggle("chosen", cur === "up");
+    downBtn.classList.toggle("chosen", cur === "down");
+    upBtn.disabled = !!cur;
+    downBtn.disabled = !!cur;
+  };
+  const choose = function(rating){
+    const m = loadFeedbackMap();
+    if (m[fp]) return;
+    m[fp] = rating;
+    saveFeedbackMap(m);
+    paint();
+    sendFeedbackToServer(rating, promptText, responseText);
+  };
+  upBtn.addEventListener("click", function(){ choose("up"); });
+  downBtn.addEventListener("click", function(){ choose("down"); });
+  wrap.appendChild(upBtn);
+  wrap.appendChild(downBtn);
+  paint();
+}
+
+/* ---------- Bouton « 📋 Kopye » sou chak mesaj — v26 ----------
+   Ti bouton diskè nan menm ranje ak fidbak la (pou repons
+   asistan yo) epi anba mesaj itilizatè yo tou : li kopye tèks
+   mesaj la nan presse-papier a (navigator.clipboard, ak sekou
+   execCommand via fallbackCopyText la), epi l montre « Kopye ✓ »
+   pandan 2 segonn. Si ranje a gen deja bouton « Kopi pwompt la »
+   a (rezilta Prompt Expert), nou pa double l — menm tèks la. */
+function attachCopyMsgButton(row, text){
+  if (!row || !text) return;
+  if (row.querySelector(".copy-msg-btn") || row.querySelector(".copy-prompt-btn")) return;
+  const saveBtn = row.querySelector(".save-msg-btn");
+  let wrap = saveBtn ? saveBtn.parentElement : null;
+  if (!wrap) {
+    wrap = document.createElement("div");
+    wrap.className = "copy-row";
+    row.appendChild(wrap);
+  }
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "copy-msg-btn";
+  btn.textContent = "📋 Kopye";
+  btn.setAttribute("aria-label", "Kopye mesaj sa a");
+  btn.addEventListener("click", () => {
+    const done = () => {
+      btn.textContent = "Kopye ✓";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = "📋 Kopye"; btn.classList.remove("copied"); }, 2000);
+    };
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(text).then(done).catch(() => { fallbackCopyText(text); done(); });
+    } else { fallbackCopyText(text); done(); }
+  });
+  wrap.appendChild(btn);
+}
+
 /* ---------- Voye / Stop ---------- */
 const sendBtn = el("send-btn");
 const input = el("chat-input");
@@ -1859,6 +1986,14 @@ async function runRequest(body, opts){
       if (savedMsg.prompt && botRow) attachCopyButton(botRow, finalText);
       if (botRow) attachSaveButton(botRow, finalText);
       if (botRow) attachSpeakButton(botRow, finalText);
+      if (botRow && succeeded) {
+        let lastUserText = "";
+        for (let i = chat.messages.length - 1; i >= 0; i--) {
+          if (chat.messages[i].role === "user") { lastUserText = chat.messages[i].text || ""; break; }
+        }
+        attachFeedbackButtons(botRow, lastUserText, finalText);
+      }
+      if (botRow) attachCopyMsgButton(botRow, finalText);
     }
     scrollToBottom();
   }
@@ -1878,6 +2013,8 @@ function sendAnalysis(body, statusText){
     const limitRow = addMessageRow("bot", msg);
     attachSaveButton(limitRow, msg);
     attachSpeakButton(limitRow, msg);
+    attachFeedbackButtons(limitRow, "", msg);
+    attachCopyMsgButton(limitRow, msg);
     scrollToBottom();
     return;
   }
@@ -1914,6 +2051,8 @@ function localBotMessage(msg){
   const botRowEl = addMessageRow("bot", msg);
   attachSaveButton(botRowEl, msg);
   attachSpeakButton(botRowEl, msg);
+  attachFeedbackButtons(botRowEl, "", msg);
+  attachCopyMsgButton(botRowEl, msg);
   scrollToBottom();
 }
 function readFileBase64(file){
@@ -3280,7 +3419,7 @@ syncThemeBtn();
    ================================================================ */
 const SUPPORT_EMAIL = "hantzcadete@gmail.com";
 const KONESA_SHARE_URL = "https://babata-ai.github.io/babata/";
-const ALL_STORAGE_KEYS = ["babata_pwa_chats_v1","babata_pwa_ideas_v1","babata_pwa_goals_v1","babata_pwa_library_v1","babata_pwa_active_v1","babata_pwa_session_v1","babata_pwa_theme","babata_memwa_v1","babata-central-usage"];
+const ALL_STORAGE_KEYS = ["babata_pwa_chats_v1","babata_pwa_ideas_v1","babata_pwa_goals_v1","babata_pwa_library_v1","babata_pwa_active_v1","babata_pwa_session_v1","babata_pwa_theme","babata_memwa_v1","babata-central-usage","babata_pwa_feedback_v1"];
 function renderSupportInfo(){ /* Pa gen backend : fòmilè a pare, voye a fèt pa mailto. */ }
 function currentPlanLabel(){
   if (lastPlanData && lastPlanData.plan && PLAN_LABELS[lastPlanData.plan]) return PLAN_LABELS[lastPlanData.plan];
