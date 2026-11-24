@@ -3,8 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#000000">
-<title>Babata</title>
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#04060d">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#edf1f9">
+<title>Hama</title>
+<script>
+/* Tèm (klè/lannwit) : aplike chwa a ANVAN premye penti a — chwa manyèl
+   a (localStorage) pase sou preferans sistèm lan ; san chwa, sistèm lan
+   deside. app.js jere bouton an ak mizajou a. */
+(function(){try{
+  var t = localStorage.getItem("babata_pwa_theme");
+  if (t !== "light" && t !== "dark") t = (window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", t);
+}catch(e){ document.documentElement.setAttribute("data-theme", "dark"); }})();
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -16,14 +27,20 @@
 
   <!-- ===== HEADER ===== -->
   <header id="topbar">
-    <button id="menu-btn" class="round-btn" type="button" aria-label="Meni">☰</button>
+    <button id="menu-btn" class="round-btn head" type="button" aria-label="Meni">☰</button>
     <div class="brand">
       <div class="avatar-wrap">
-        <img class="avatar" src="icon-512.png" alt="Babata">
-        <span class="status-pill"><span class="status-dot"></span>Anliy</span>
+        <div class="avatar-ring"><img class="avatar" src="icon-512.png" alt="Hama"></div>
+        <span class="status-dot" aria-hidden="true"></span>
+      </div>
+      <div class="brand-text">
+        <span class="brand-name">HAMA</span>
+        <span class="brand-status"><span class="dot"></span>Anliy</span>
       </div>
     </div>
-    <button id="gift-btn" class="round-btn" type="button" aria-label="Kado">🎁</button>
+    <span id="plan-badge" class="plan-badge guest">Envite</span>
+    <button id="theme-btn" class="round-btn head" type="button" aria-label="Chanje tèm (klè / lannwit)">🌙</button>
+    <button id="gift-btn" class="round-btn head" type="button" aria-label="Kado">🎁</button>
   </header>
 
   <!-- ===== ZÒN PRINSIPAL ===== -->
@@ -61,12 +78,12 @@
       <ul id="library-list" class="ws-list"></ul>
     </section>
     <section id="view-kont" class="view panel-view ws-view">
-      <h2>Kont Babata mwen</h2>
+      <h2>Kont Hama mwen</h2>
       <div id="account-signed-out">
-        <p class="ws-sub">Yon kont pèmèt ou kenbe menm limit ou a sou tout aparèy ou yo, epi l ap aktive Pake Konplè a lè l pare. Koneksyon an opsyonèl — Babata kontinye mache nèt san kont tou.</p>
+        <p class="ws-sub">Yon kont pèmèt ou kenbe menm limit ou a sou tout aparèy ou yo, epi l ap aktive Pake Konplè a lè l pare. Koneksyon an opsyonèl — Hama kontinye mache nèt san kont tou.</p>
         <div class="auth-providers">
           <button id="auth-google-btn" class="ws-add auth-provider" type="button">Continye ak Google</button>
-          <button id="auth-facebook-btn" class="ws-add auth-provider" type="button">Continye ak Facebook</button>
+          <button id="auth-facebook-btn" class="ws-add auth-provider soon" type="button" disabled aria-disabled="true">Continye ak Facebook <span class="soon-tag">Poko pare</span></button>
         </div>
         <p class="auth-sep">— oswa —</p>
         <div class="ws-form">
@@ -92,25 +109,25 @@
           <p id="plan-expires" class="ws-sub"></p>
           <div class="plan-cards">
             <div class="plan-card" data-plan="debaz">
-              <p class="plan-card-name">BABATA</p>
+              <p class="plan-card-name">HAMA</p>
               <p class="plan-card-price">500 HTG / 5 $ pa mwa</p>
               <p class="plan-card-desc">30 demann pa jou (chat, analiz, imaj)</p>
               <span class="plan-card-badge hidden">✅ Plan ou a</span>
             </div>
             <div class="plan-card" data-plan="pro">
-              <p class="plan-card-name">BABATA PRO <span class="plan-pop">⭐ Pi popilè</span></p>
+              <p class="plan-card-name">HAMA PRO <span class="plan-pop">⭐ Pi popilè</span></p>
               <p class="plan-card-price">1 500 HTG / 12 $ pa mwa</p>
               <p class="plan-card-desc">150 demann pa jou (chat, analiz, imaj)</p>
               <span class="plan-card-badge hidden">✅ Plan ou a</span>
             </div>
             <div class="plan-card" data-plan="promax">
-              <p class="plan-card-name">BABATA PRO MAX</p>
+              <p class="plan-card-name">HAMA PRO MAX</p>
               <p class="plan-card-price">3 000 HTG / 25 $ pa mwa</p>
               <p class="plan-card-desc">Tout bagay san limit</p>
               <span class="plan-card-badge hidden">✅ Plan ou a</span>
             </div>
           </div>
-          <p class="ws-sub plan-note">Pou w pran oswa chanje plan, kontakte ekip Babata a sou WhatsApp.</p>
+          <p class="ws-sub plan-note">Pou w pran oswa chanje plan, kontakte ekip Hama a sou WhatsApp.</p>
         </div>
         <button id="auth-logout-btn" class="ws-add auth-logout" type="button">Dekonekte</button>
       </div>
@@ -167,8 +184,8 @@
 <aside id="drawer" aria-hidden="true">
   <div class="drawer-head">
     <div class="drawer-brand">
-      <img class="drawer-avatar" src="icon-512.png" alt="Babata">
-      <h2>BABATA</h2>
+      <img class="drawer-avatar" src="icon-512.png" alt="Hama">
+      <h2>HAMA</h2>
     </div>
     <button id="drawer-close" class="round-btn small" type="button" aria-label="Fèmen meni an">✕</button>
   </div>
@@ -204,7 +221,7 @@
     <button id="sheet-link" class="sheet-action" type="button">🔗 Lyen TikTok / YouTube</button>
     <button id="sheet-prompt" class="sheet-action" type="button">✨ Prompt Expert — fabrike yon pwompt pwofesyonèl</button>
     <button id="sheet-kopi" class="sheet-action" type="button">✍️ Amelyore Kopi — fè kopi w la vin premium</button>
-    <button id="sheet-imaj" class="sheet-action" type="button">🎨 Kreye Imaj — dekri, Babata ap kreye l</button>
+    <button id="sheet-imaj" class="sheet-action" type="button">🎨 Kreye Imaj — dekri, Hama ap kreye l</button>
     <button id="sheet-pre" class="sheet-action" type="button">📍 Pre m — otèl, restoran, lopital pre w</button>
     <button id="sheet-cancel" class="sheet-action cancel" type="button">Anile</button>
   </div>
@@ -215,13 +232,13 @@
   <div class="modal-card">
     <h3>Paramèt</h3>
     <div class="memwa-section">
-      <h4>🧠 Memwa Babata sou ou</h4>
+      <h4>🧠 Memwa Hama sou ou</h4>
       <div id="memwa-body"></div>
       <button id="memwa-wipe-btn" class="ghost" type="button">Efase memwa a</button>
       <p id="memwa-status" class="version"></p>
     </div>
     <button id="wipe-btn" class="danger" type="button">Efase tout istwa a</button>
-    <p class="version">Vèsyon 1.0</p>
+    <p class="version">Vèsyon 21</p>
     <button id="settings-close" class="ghost" type="button">Fèmen</button>
   </div>
 </div>

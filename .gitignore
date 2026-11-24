@@ -1,0 +1,9 @@
+# Hama PWA — fichye ki pa dwe janm antre nan depo a
+.env
+.env.*
+*.key
+*.pem
+credentials*
+*secret*
+node_modules/
+.DS_Store
