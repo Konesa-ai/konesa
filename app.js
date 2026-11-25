@@ -14,6 +14,9 @@
    v27 : liy dat DINAMIK nan enstwiksyon sistèm nan (4 lang yo) —
    modèl la resevwa dat + lè aktyèl telefòn itilizatè a a chak
    demann, ak règ pou l pa janm pretann yon lòt dat.
+   v28 : NOUVO ADRÈS ofisyèl la — depo a renome an konesa-ai/konesa,
+   KONESA_SHARE_URL + AUTH_REDIRECT_TO vin
+   https://konesa-ai.github.io/konesa/ (zewo « babata » nan adrès la).
    v23 : bibliyotèk modèl prompts pare (vi « model »), envitasyon
    zanmi (kòd referral + reklamasyon + bonus nan plan an), acha plan
    (bouton « Achte » + modèl Getly / WhatsApp-MonCash / « M peye
@@ -2979,7 +2982,7 @@ el("wipe-btn").addEventListener("click", () => {
    ================================================================ */
 const SESSION_KEY = "babata_pwa_session_v1";
 const AUTH_BASE = CHAT_API.url.split("/functions/v1/")[0] + "/auth/v1";
-const AUTH_REDIRECT_TO = "https://babata-ai.github.io/babata/";
+const AUTH_REDIRECT_TO = "https://konesa-ai.github.io/konesa/";
 const AUTH_WELCOME_TEXT = "Ou konekte ak kont ou a ✔";
 
 /* Header apèl fonksyon yo : egzakteman menm header ak v8 la, plis
@@ -3455,7 +3458,7 @@ syncThemeBtn();
    V22 — KONFIDANSYALITE / TÈM / ASISTANS / PATAJE / EFASMAN KONT
    ================================================================ */
 const SUPPORT_EMAIL = "hantzcadete@gmail.com";
-const KONESA_SHARE_URL = "https://babata-ai.github.io/babata/";
+const KONESA_SHARE_URL = "https://konesa-ai.github.io/konesa/";
 const ALL_STORAGE_KEYS = ["babata_pwa_chats_v1","babata_pwa_ideas_v1","babata_pwa_goals_v1","babata_pwa_library_v1","babata_pwa_active_v1","babata_pwa_session_v1","babata_pwa_theme","babata_memwa_v1","babata-central-usage","babata_pwa_feedback_v1"];
 function renderSupportInfo(){ /* Pa gen backend : fòmilè a pare, voye a fèt pa mailto. */ }
 function currentPlanLabel(){
