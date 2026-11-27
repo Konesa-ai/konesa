@@ -17,6 +17,10 @@
    v28 : NOUVO ADRÈS ofisyèl la — depo a renome an konesa-ai/konesa,
    KONESA_SHARE_URL + AUTH_REDIRECT_TO vin
    https://konesa-ai.github.io/konesa/ (zewo « babata » nan adrès la).
+   v29 : MÒD DONE FÈB (Low Data Mode) — toggle nan Paramèt yo (vi
+   Kont) : lè l aktive, sendChat voye { lowData:true } bay sèvè a,
+   epi fonksyon v30 a reponn KOUT, tèks sèlman (ekonomi done pou
+   koneksyon fèb). Chwa a sere nan localStorage « babata_pwa_lowdata ».
    v23 : bibliyotèk modèl prompts pare (vi « model »), envitasyon
    zanmi (kòd referral + reklamasyon + bonus nan plan an), acha plan
    (bouton « Achte » + modèl Getly / WhatsApp-MonCash / « M peye
@@ -140,6 +144,8 @@ const I18N = {
   "settings_help": "Paramèt ak èd",
   "theme_label": "Tèm (klè / lannwit)",
   "lang_label": "Lang",
+  "lowdata_label": "Mòd done fèb (ekonomize entènèt)",
+  "lowdata_hint": "Lè l aktive : repons yo pi kout, tèks sèlman — pou koneksyon fèb ak done ki chè.",
   "share_konesa": "🔗 Pataje Konesa",
   "privacy": "🔒 Konfidansyalite",
   "terms": "📄 Tèm itilizasyon",
@@ -211,6 +217,8 @@ const I18N = {
   "settings_help": "Paramètres et aide",
   "theme_label": "Thème (clair / nuit)",
   "lang_label": "Langue",
+  "lowdata_label": "Mode données faibles (économiser Internet)",
+  "lowdata_hint": "Quand il est actif : réponses plus courtes, texte seulement — pour connexion faible et données chères.",
   "share_konesa": "🔗 Partager Konesa",
   "privacy": "🔒 Confidentialité",
   "terms": "📄 Conditions d'utilisation",
@@ -282,6 +290,8 @@ const I18N = {
   "settings_help": "Settings & help",
   "theme_label": "Theme (light / dark)",
   "lang_label": "Language",
+  "lowdata_label": "Low data mode (save Internet)",
+  "lowdata_hint": "When on: shorter answers, text only — for weak connections and expensive data.",
   "share_konesa": "🔗 Share Konesa",
   "privacy": "🔒 Privacy",
   "terms": "📄 Terms of use",
@@ -353,6 +363,8 @@ const I18N = {
   "settings_help": "Ajustes y ayuda",
   "theme_label": "Tema (claro / noche)",
   "lang_label": "Idioma",
+  "lowdata_label": "Modo de datos bajos (ahorrar Internet)",
+  "lowdata_hint": "Cuando está activo: respuestas más cortas, solo texto — para conexión débil y datos caros.",
   "share_konesa": "🔗 Compartir Konesa",
   "privacy": "🔒 Privacidad",
   "terms": "📄 Términos de uso",
@@ -2038,9 +2050,12 @@ async function runRequest(body, opts){
     scrollToBottom();
   }
 }
-/* Chat òdinè : menm konpòtman ak v1 a — li pa janm konte nan limit la. */
+/* Chat òdinè : menm konpòtman ak v1 a — li pa janm konte nan limit la.
+   v29 : si mòd done fèb la aktive, drapo lowData a pati ak demann lan. */
 async function sendChat(prompt){
-  return runRequest({ prompt: prompt });
+  const body = { prompt: prompt };
+  if (lowDataOn()) body.lowData = true;
+  return runRequest(body);
 }
 /* Analiz (atachman oswa lyen) : li konte nan kontè limit santral la.
    Si limit la plen, demann lan pa pati — yon bul IA eksplike l. */
@@ -3454,12 +3469,27 @@ function applyTheme(t){
 el("theme-btn").addEventListener("click", () => applyTheme(currentTheme() === "light" ? "dark" : "light"));
 syncThemeBtn();
 
+/* ---------- Mòd done fèb / Low Data Mode (v29) ----------
+   Toggle nan Paramèt yo (vi Kont). Lè l aktive, sendChat ajoute
+   { lowData:true } nan kò demann chat la ; fonksyon sèvè v30 a
+   reponn kout, tèks sèlman — ekonomi done pou koneksyon fèb.
+   Chwa a rete nan localStorage, menm jan ak tèm lan. */
+const LOWDATA_KEY = "babata_pwa_lowdata";
+function lowDataOn(){ try { return localStorage.getItem(LOWDATA_KEY) === "1"; } catch(e){ return false; } }
+function syncLowDataBtn(){ const v = el("lowdata-value"); if (v) v.textContent = lowDataOn() ? "Wi" : "Non"; }
+function toggleLowData(){
+  try { localStorage.setItem(LOWDATA_KEY, lowDataOn() ? "0" : "1"); } catch(e){}
+  syncLowDataBtn();
+  toast(lowDataOn() ? "Mòd done fèb aktive ✔" : "Mòd done fèb dezaktive");
+}
+(function(){ const b = el("lowdata-btn"); if (b) b.addEventListener("click", toggleLowData); syncLowDataBtn(); })();
+
 /* ================================================================
    V22 — KONFIDANSYALITE / TÈM / ASISTANS / PATAJE / EFASMAN KONT
    ================================================================ */
 const SUPPORT_EMAIL = "hantzcadete@gmail.com";
 const KONESA_SHARE_URL = "https://konesa-ai.github.io/konesa/";
-const ALL_STORAGE_KEYS = ["babata_pwa_chats_v1","babata_pwa_ideas_v1","babata_pwa_goals_v1","babata_pwa_library_v1","babata_pwa_active_v1","babata_pwa_session_v1","babata_pwa_theme","babata_memwa_v1","babata-central-usage","babata_pwa_feedback_v1"];
+const ALL_STORAGE_KEYS = ["babata_pwa_chats_v1","babata_pwa_ideas_v1","babata_pwa_goals_v1","babata_pwa_library_v1","babata_pwa_active_v1","babata_pwa_session_v1","babata_pwa_theme","babata_pwa_lowdata","babata_memwa_v1","babata-central-usage","babata_pwa_feedback_v1"];
 function renderSupportInfo(){ /* Pa gen backend : fòmilè a pare, voye a fèt pa mailto. */ }
 function currentPlanLabel(){
   if (lastPlanData && lastPlanData.plan && PLAN_LABELS[lastPlanData.plan]) return PLAN_LABELS[lastPlanData.plan];
